@@ -1,0 +1,29 @@
+[package]
+name = "grid-std"
+description = "Gridland: no_std compatibility layer and shared re-exports"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+license.workspace = true
+
+[features]
+default = ["std"]
+std = ["rand/std", "rand/std_rng", "dep:libc"]
+parallel = ["rayon"]
+
+[dependencies]
+libc = { version = "0.2", default-features = false, optional = true }
+rand = { version = "0.10", default-features = false }
+rayon = { version = "1", optional = true }
+libm = { version = "0.2", default-features = false }
+
+[target.'cfg(any(target_os = "macos", target_os = "ios", target_os = "watchos", target_os = "tvos", target_os = "visionos"))'.dependencies]
+mach2 = { version = "0.4", default-features = false }
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61.2", features = [
+    "Win32_Foundation",
+    "Win32_System_ProcessStatus",
+    "Win32_System_Threading",
+] }

@@ -1,0 +1,44 @@
+[package]
+name = "grid-commit"
+description = "Gridland: commitment schemes built on the algebra layer"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+license.workspace = true
+
+[features]
+default = ["std"]
+std = ["grid-std/std", "grid-serialize/std", "grid-algebra/std"]
+
+[dependencies]
+grid-std = { path = "../std", default-features = false }
+grid-serialize = { path = "../serialize", default-features = false }
+grid-algebra = { path = "../algebra", default-features = false }
+
+[dev-dependencies]
+criterion = "0.8"
+
+[[bench]]
+name = "ajtai"
+harness = false
+
+[[bench]]
+name = "bdlop"
+harness = false
+
+[[bench]]
+name = "gadget"
+harness = false
+
+[[bench]]
+name = "ajtai_large"
+harness = false
+
+[[bench]]
+name = "ajtai_goldilocks"
+harness = false
+
+[[bench]]
+name = "prepared_paths"
+harness = false

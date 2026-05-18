@@ -1,0 +1,25 @@
+[package]
+name = "grid-transcript"
+description = "Gridland: shared Fiat-Shamir transcript traits and framing"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+license.workspace = true
+
+[features]
+default = ["std"]
+std = ["grid-std/std", "grid-serialize/std", "grid-algebra/std"]
+
+[dependencies]
+grid-std = { path = "../std", default-features = false }
+grid-serialize = { path = "../serialize", default-features = false }
+grid-algebra = { path = "../algebra", default-features = false }
+sha3 = { version = "0.11", default-features = false }
+
+[dev-dependencies]
+criterion = "0.8"
+
+[[bench]]
+name = "poseidon2"
+harness = false

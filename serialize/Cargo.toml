@@ -1,0 +1,15 @@
+[package]
+name = "grid-serialize"
+description = "Gridland: canonical serialization and deserialization traits"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+license.workspace = true
+
+[features]
+default = ["std"]
+std = []
+
+[dependencies]
+grid-serialize-derive = { path = "derive", version = "0.1.0" }
