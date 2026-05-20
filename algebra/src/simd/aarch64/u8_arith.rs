@@ -544,8 +544,8 @@ mod tests {
 
         let plan = NttPlan::<F193u8>::build(n).unwrap();
         let mut values = original.clone();
-        crate::simd::montgomery_prime::ntt_forward_with_plan(&mut values, &plan).unwrap();
-        crate::simd::montgomery_prime::ntt_inverse_with_plan(&mut values, &plan).unwrap();
+        crate::simd::montgomery::ntt_forward_with_plan(&mut values, &plan).unwrap();
+        crate::simd::montgomery::ntt_inverse_with_plan(&mut values, &plan).unwrap();
 
         assert_eq!(values, original);
     }

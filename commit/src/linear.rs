@@ -8,7 +8,8 @@ use grid_algebra::arith::large_modulus::{LargePrimeProfile, LargeRnsProfile};
 use grid_algebra::arith::large_prime::LargePrimeField;
 use grid_algebra::arith::large_rns::LargeRns;
 use grid_algebra::arith::ntt::NTTRing;
-use grid_algebra::arith::prime::{PrimeField, PrimeFieldLimb};
+use grid_algebra::arith::limb::UintLimb;
+use grid_algebra::arith::prime::PrimeField;
 use grid_algebra::arith::ring::{Field, Ring};
 use grid_algebra::arith::z2k::Z2K;
 use grid_algebra::lattice::params::NormBound;
@@ -629,7 +630,7 @@ pub trait PreparedLinearOps: Ring {
     }
 }
 
-impl<const Q: u64, L: PrimeFieldLimb> PreparedLinearOps for PrimeField<Q, L> {
+impl<const Q: u64, L: UintLimb> PreparedLinearOps for PrimeField<Q, L> {
     #[inline(always)]
     fn recompute_linear_commitment_runtime(
         _prepared_key: Option<&dyn Any>,
