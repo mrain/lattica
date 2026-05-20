@@ -4,6 +4,7 @@
 
 pub mod bigint;
 pub mod composite;
+pub mod gf2;
 pub mod large_modulus;
 pub mod large_prime;
 pub mod large_prime_profiles;
@@ -22,5 +23,6 @@ pub use large_prime_profiles::{
 };
 pub use large_rns::{LargeRns, Rns3V0};
 pub use large_rns_profiles::Rns3V0Profile;
+pub use gf2::GF2;
 pub use ntt::NTTRing;
 pub use ring::{Field, IntegerRing, Ring};
