@@ -128,6 +128,21 @@ pub trait Ring:
             *dst_value += Self::mul_ref(src_value, scalar);
         }
     }
+
+    /// Compute `self^exp` by repeated squaring.
+    fn pow(&self, mut exp: u64) -> Self {
+        let mut base = self.clone();
+        let mut result = Self::one();
+        while exp > 0 {
+            if exp & 1 == 1 {
+                let b = base.clone();
+                result *= b;
+            }
+            base = base.square();
+            exp >>= 1;
+        }
+        result
+    }
 }
 
 /// An integer ring `Z_q` with a modulus and reduction.
@@ -177,21 +192,6 @@ pub trait Field: IntegerRing {
     fn div(&self, other: &Self) -> Self {
         let inv = other.inv();
         Self::mul_ref(self, &inv)
-    }
-
-    /// Compute `self^exp` by repeated squaring.
-    fn pow(&self, mut exp: u64) -> Self {
-        let mut base = self.clone();
-        let mut result = Self::one();
-        while exp > 0 {
-            if exp & 1 == 1 {
-                let b = base.clone();
-                result *= b;
-            }
-            base = base.square();
-            exp >>= 1;
-        }
-        result
     }
 }
 
