@@ -16,7 +16,9 @@ pub mod prime;
 pub mod ring;
 pub mod rns;
 pub mod z2k;
+pub mod zm;
 
+pub use gf2::GF2;
 pub use large_modulus::{LargeCanonicalRing, LargePrimeProfile, LargeRnsProfile};
 pub use large_prime::{Bls12_381Fq, Bls12_381Fr, Bn254Fq, Bn254Fr, LargePrimeField};
 pub use large_prime_profiles::{
@@ -24,7 +26,7 @@ pub use large_prime_profiles::{
 };
 pub use large_rns::{LargeRns, Rns3V0};
 pub use large_rns_profiles::Rns3V0Profile;
-pub use gf2::GF2;
 pub use limb::UintLimb;
 pub use ntt::NTTRing;
 pub use ring::{Field, IntegerRing, Ring};
+pub use zm::Zm;
