@@ -1011,9 +1011,7 @@ mod tests {
         assert!(black_box(
             <F3329 as MontgomeryUintSimd>::AVX2_MONTGOMERY_QUALIFIED
         ));
-        assert!(black_box(
-            <F3329 as MontgomeryUintSimd>::AVX2_NTT_QUALIFIED
-        ));
+        assert!(black_box(<F3329 as MontgomeryUintSimd>::AVX2_NTT_QUALIFIED));
 
         assert!(black_box(
             <F4294967311 as MontgomeryUintSimd>::AVX2_ADD_SUB_QUALIFIED

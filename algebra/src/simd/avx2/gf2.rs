@@ -82,7 +82,9 @@ pub(crate) unsafe fn dot_product(lhs: *const u8, rhs: *const u8, len: usize) -> 
 
     // Horizontal sum: store accumulator into a [u64; 4] scratch array and sum
     let mut acc_buf = [0u64; 4];
-    unsafe { _mm256_storeu_si256(acc_buf.as_mut_ptr() as *mut __m256i, acc); }
+    unsafe {
+        _mm256_storeu_si256(acc_buf.as_mut_ptr() as *mut __m256i, acc);
+    }
     let mut result = acc_buf.iter().sum::<u64>();
 
     // Scalar tail

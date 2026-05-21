@@ -37,7 +37,10 @@ impl<const M: u64, L: UintLimb> Zm<M, L> {
     pub const MODULUS: u64 = {
         assert!(M >= 2, "Zm modulus must be >= 2");
         if L::BITS < 64 {
-            assert!(M < (1u64 << L::BITS), "Zm modulus must fit in the limb type");
+            assert!(
+                M < (1u64 << L::BITS),
+                "Zm modulus must fit in the limb type"
+            );
         }
         M
     };
@@ -98,7 +101,6 @@ impl<const M: u64, L: UintLimb> Zm<M, L> {
         };
         L::from_u64(inv)
     }
-
 
     // --- Raw word arithmetic ---
 
@@ -474,7 +476,8 @@ impl<const M: u64, L: UintLimb> CanonicalDeserialize for Zm<M, L> {
         let val = u64::from_le_bytes(bytes);
         if val >= Self::MODULUS {
             return Err(SerializationError::InvalidData(alloc::format!(
-                "value {val} >= modulus {}", Self::MODULUS
+                "value {val} >= modulus {}",
+                Self::MODULUS
             )));
         }
         Ok((Self::from_u64(val), Self::SERIALIZED_BYTES))
@@ -545,10 +548,10 @@ mod tests {
         grid_std::test_rng()
     }
 
-    type Z257 = Zm<257>;       // odd, composite
+    type Z257 = Zm<257>; // odd, composite
     type Z274177 = Zm<274177>; // odd, prime (F_6 factor)
-    type Z2 = Zm<2>;           // even
-    type Z256 = Zm<256>;       // even
+    type Z2 = Zm<2>; // even
+    type Z256 = Zm<256>; // even
 
     #[test]
     fn test_ring_properties_odd_composite() {

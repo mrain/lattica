@@ -693,7 +693,10 @@ mod tests {
         // byte values > 1 are rejected
         for v in [2u8, 3, 255] {
             let bytes = vec![v];
-            assert!(GF2::deserialize_exact(&bytes).is_err(), "byte {v} should be rejected");
+            assert!(
+                GF2::deserialize_exact(&bytes).is_err(),
+                "byte {v} should be rejected"
+            );
         }
     }
 

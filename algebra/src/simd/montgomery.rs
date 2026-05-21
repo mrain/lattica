@@ -1,11 +1,11 @@
 //! Internal SIMD qualification and dispatch for Montgomery-backed prime fields.
 
+use crate::arith::limb::UintLimb;
 use crate::arith::ntt::{
     NttError, NttPlan, bit_reverse_permute, scalar_ntt_forward_with_plan,
     scalar_ntt_inverse_with_plan,
 };
 use crate::arith::prime::PrimeField;
-use crate::arith::limb::UintLimb;
 use crate::simd::dispatch::{Backend, selected_backend};
 
 const AVX2_ADD_SUB_MAX_Q: u64 = 1u64 << 62;
@@ -53,8 +53,7 @@ impl<const Q: u64, L: UintLimb> MontgomeryUintSimd for PrimeField<Q, L> {
         (L::BITS == 64 && Q < (1u64 << 63)) || L::BITS == 16 || L::BITS == 8 || L::BITS == 32;
     const AVX2_MONTGOMERY_QUALIFIED: bool =
         L::BITS == 64 || L::BITS == 16 || L::BITS == 8 || L::BITS == 32;
-    const NEON_MONTGOMERY_QUALIFIED: bool =
-        L::BITS == 16 || L::BITS == 8 || L::BITS == 32;
+    const NEON_MONTGOMERY_QUALIFIED: bool = L::BITS == 16 || L::BITS == 8 || L::BITS == 32;
     const AVX2_NTT_QUALIFIED: bool = Self::AVX2_MONTGOMERY_QUALIFIED;
     const NEON_NTT_QUALIFIED: bool = Self::NEON_MONTGOMERY_QUALIFIED;
 

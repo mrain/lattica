@@ -5,12 +5,14 @@
 pub mod bigint;
 pub mod composite;
 pub mod gf2;
-pub mod limb;
 pub mod large_modulus;
 pub mod large_prime;
 pub mod large_prime_profiles;
 pub mod large_rns;
 pub mod large_rns_profiles;
+pub mod large_zm;
+pub mod large_zm_profiles;
+pub mod limb;
 pub mod ntt;
 pub mod prime;
 pub mod ring;
@@ -26,6 +28,7 @@ pub use large_prime_profiles::{
 };
 pub use large_rns::{LargeRns, Rns3V0};
 pub use large_rns_profiles::Rns3V0Profile;
+pub use large_zm::LargeZm;
 pub use limb::UintLimb;
 pub use ntt::NTTRing;
 pub use ring::{Field, IntegerRing, Ring};
