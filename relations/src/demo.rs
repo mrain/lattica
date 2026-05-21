@@ -154,7 +154,7 @@ pub fn fibonacci_r1cs_constant_poly<C, const N: usize>(
     target_index: usize,
 ) -> FibonacciR1csDemo<CyclotomicPolyRing<C, N>>
 where
-    C: NegacyclicMulRing<N, Uint = u64>,
+    C: NegacyclicMulRing<N, Canonical = u64>,
 {
     type Poly<C0, const N0: usize> = CyclotomicPolyRing<C0, N0>;
 

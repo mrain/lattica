@@ -43,7 +43,7 @@ pub fn split_witness<R, const N: usize>(
     n_prime: usize,
 ) -> LabradorWitness<CyclotomicPolyRing<R, N>>
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N>,
+    R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N>,
 {
     assert_eq!(
         z_parts.len(),
@@ -113,7 +113,7 @@ pub fn split_last_level_witness<R, const N: usize>(
     n_prime: usize,
 ) -> LabradorWitness<CyclotomicPolyRing<R, N>>
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N>,
+    R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N>,
 {
     let zero = CyclotomicPolyRing::<R, N>::zero();
     let n = z.len();

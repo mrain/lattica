@@ -56,7 +56,7 @@ pub type BinaryChallenges<R> = (Vec<R>, Vec<R>, Vec<R>);
 
 /// Binary R1CS instance.
 #[derive(Debug, Clone)]
-pub struct BinaryR1CSInstance<R: IntegerRing<Uint = u64>> {
+pub struct BinaryR1CSInstance<R: IntegerRing<Canonical = u64>> {
     pub a_r1cs: RingMat<R>,
     pub b_r1cs: RingMat<R>,
     pub c_r1cs: RingMat<R>,
@@ -66,7 +66,7 @@ pub struct BinaryR1CSInstance<R: IntegerRing<Uint = u64>> {
 #[derive(Debug, Clone)]
 pub struct BinaryR1CSReduction<R, const N: usize>
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N>,
+    R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N>,
 {
     /// LaBRADOR statement (F: Ajtai opening; F': binary + verifier checks)
     pub statement: LabradorStatement<CyclotomicPolyRing<R, N>>,
@@ -128,7 +128,7 @@ where
 }
 
 /// Compute `a = A_r1cs * w mod 2` for integer matrices.
-fn mat_vec_mod2<R: IntegerRing<Uint = u64>>(mat: &RingMat<R>, w: &[R]) -> Vec<u64> {
+fn mat_vec_mod2<R: IntegerRing<Canonical = u64>>(mat: &RingMat<R>, w: &[R]) -> Vec<u64> {
     let k = mat.rows();
     let n = mat.cols();
     let mut result = Vec::with_capacity(k);
@@ -151,7 +151,7 @@ pub fn build_binary_r1cs_reduction<R, Rng, const N: usize>(
     l: usize,
 ) -> Result<BinaryR1CSReduction<R, N>, LabradorError>
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N>,
+    R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N>,
     Rng: RngExt,
 {
     let k = instance.a_r1cs.rows();
@@ -579,7 +579,7 @@ pub fn build_binary_r1cs_reduction_transcript<R, T, const N: usize>(
     l: usize,
 ) -> Result<BinaryR1CSReduction<R, N>, TranscriptError>
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N>,
+    R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N>,
     T: grid_transcript::Transcript,
 {
     let k = instance.a_r1cs.rows();
@@ -936,7 +936,7 @@ pub fn verify_binary_r1cs_reduction<R, const N: usize>(
     max_norm_bound: f64,
 ) -> Result<(), String>
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N>,
+    R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N>,
 {
     // Extract g_i from F' b constants (last l F' functions)
     // F' layout per paper §6 Figure 4: [N*(3k+n) conjugacy][4 binary][1 Hadamard][l F2]

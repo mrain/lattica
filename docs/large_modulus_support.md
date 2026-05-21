@@ -23,8 +23,8 @@ The shipped design keeps the existing single-word-modulus fast path intact:
 
 - `PrimeField<Q, L>`, `Z2K<K>`, Goldilocks, and `Rq23Np8` remain the canonical optimized
   path for moduli that fit in primitive machine limbs
-- large-modulus support is exposed through companion traits and explicit backend types rather than
-  replacing the old `IntegerRing` / `Field` stack
+- large-modulus support is exposed through `IntegerRing::Canonical` and explicit backend types,
+  while the small-modulus fast path keeps `Canonical = u64`
 - dynamic FHE-style modulus-chain state is not stored inside each scalar element
 
 ## Shipped Algebra Surface
@@ -33,7 +33,7 @@ The current `grid-algebra` large-modulus surface includes:
 
 - `BigUint<const N: usize>` fixed-limb substrate helpers in
   [algebra/src/arith/bigint.rs](../algebra/src/arith/bigint.rs)
-- `LargeCanonicalRing`, `LargePrimeProfile`, and `LargeRnsProfile` in
+- `LargePrimeProfile` and `LargeRnsProfile` in
   [algebra/src/arith/large_modulus.rs](../algebra/src/arith/large_modulus.rs)
 - `LargePrimeField<P, LIMBS>` and the shipped profile aliases in
   [algebra/src/arith/large_prime.rs](../algebra/src/arith/large_prime.rs)

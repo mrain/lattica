@@ -51,7 +51,7 @@ pub type VerifiedStep<R, const N: usize> = RecursiveTarget<R, N>;
 #[derive(Debug, Clone)]
 pub struct StepVerificationOutput<R, const N: usize>
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N> + UniformRand,
+    R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N> + UniformRand,
 {
     /// Aggregated quadratic function from step 2 aggregation.
     pub aggregated: AggregatedFunction<R, N>,
@@ -68,7 +68,7 @@ fn validate_statement_shapes<R, const N: usize>(
     params: &LabradorParams,
 ) -> Result<(), LabradorError>
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N>,
+    R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N>,
 {
     let r = params.r;
     let n = params.n;
@@ -104,7 +104,7 @@ fn validate_function_shape<R, const N: usize>(
     fprime: bool,
 ) -> Result<(), LabradorError>
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N>,
+    R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N>,
 {
     match f {
         QuadraticFunction::Dense(d) => {
@@ -242,7 +242,7 @@ pub fn verify_step<R, const N: usize, T>(
     level: usize,
 ) -> Result<StepVerificationOutput<R, N>, LabradorError>
 where
-    R: IntegerRing<Uint = u64>
+    R: IntegerRing<Canonical = u64>
         + NegacyclicMulRing<N>
         + UniformRand
         + CanonicalSerialize
@@ -428,7 +428,7 @@ pub fn derive_target_relation<R, const N: usize>(
     challenges: &[CyclotomicPolyRing<R, N>],
 ) -> RecursiveTarget<R, N>
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N> + UniformRand,
+    R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N> + UniformRand,
 {
     let nu = params.nu;
     let mu = params.mu;

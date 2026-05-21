@@ -22,7 +22,7 @@ use crate::main_protocol::step_prover::LevelProof;
 #[derive(Debug, Clone, CanonicalSerialize, CanonicalDeserialize)]
 pub struct LabradorProof<R, const N: usize>
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N> + UniformRand,
+    R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N> + UniformRand,
 {
     /// Proof data for each main recursion level.
     pub levels: Vec<LevelProof<R, N>>,
@@ -32,7 +32,7 @@ where
 
 impl<R, const N: usize> LabradorProof<R, N>
 where
-    R: IntegerRing<Uint = u64>
+    R: IntegerRing<Canonical = u64>
         + NegacyclicMulRing<N>
         + UniformRand
         + CanonicalSerialize

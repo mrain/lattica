@@ -365,21 +365,36 @@ impl Ring for GF2 {
 // --- IntegerRing impl ---
 
 impl IntegerRing for GF2 {
-    type Uint = u64;
+    type Canonical = u64;
 
     #[inline]
-    fn modulus() -> u64 {
+    fn modulus_canonical() -> u64 {
         2
     }
 
     #[inline]
-    fn from_u64(val: u64) -> Self {
+    fn from_small_u64(val: u64) -> Self {
         GF2::new(val as u8)
     }
 
     #[inline]
-    fn to_u64(&self) -> u64 {
+    fn from_canonical(value: &u64) -> Self {
+        Self::from_small_u64(*value)
+    }
+
+    #[inline]
+    fn to_canonical(&self) -> u64 {
         self.0 as u64
+    }
+
+    #[inline]
+    fn try_to_u64(&self) -> Option<u64> {
+        Some(self.to_canonical())
+    }
+
+    #[inline]
+    fn try_to_u128(&self) -> Option<u128> {
+        Some(self.to_canonical() as u128)
     }
 
     #[inline]
@@ -442,36 +457,6 @@ impl Valid for GF2 {
 impl grid_std::UniformRand for GF2 {
     fn rand<R: RngExt + ?Sized>(rng: &mut R) -> Self {
         GF2::new(rng.random::<u64>() as u8)
-    }
-}
-
-// --- LargeCanonicalRing ---
-
-impl crate::arith::large_modulus::LargeCanonicalRing for GF2 {
-    type Canonical = u64;
-
-    fn modulus_canonical() -> u64 {
-        2
-    }
-
-    fn from_small_u64(value: u64) -> Self {
-        GF2::new(value as u8)
-    }
-
-    fn from_canonical(value: &u64) -> Self {
-        GF2::new(*value as u8)
-    }
-
-    fn to_canonical(&self) -> u64 {
-        self.0 as u64
-    }
-
-    fn try_to_u64(&self) -> Option<u64> {
-        Some(self.0 as u64)
-    }
-
-    fn try_to_u128(&self) -> Option<u128> {
-        Some(self.0 as u128)
     }
 }
 
@@ -723,7 +708,6 @@ mod tests {
 
     #[test]
     fn large_canonical_roundtrip() {
-        use crate::arith::large_modulus::LargeCanonicalRing;
         let val = GF2(1);
         let canon = val.to_canonical();
         assert_eq!(canon, 1);

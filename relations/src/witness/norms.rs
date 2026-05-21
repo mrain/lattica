@@ -294,7 +294,6 @@ where
 mod tests {
     use super::*;
 
-    use grid_algebra::arith::LargeCanonicalRing;
     use grid_algebra::arith::bigint::BigUint;
     use grid_algebra::arith::large_prime::Bn254Fr;
     use grid_algebra::arith::large_rns::Rns3V0;

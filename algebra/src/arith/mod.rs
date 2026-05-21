@@ -21,7 +21,7 @@ pub mod z2k;
 pub mod zm;
 
 pub use gf2::GF2;
-pub use large_modulus::{LargeCanonicalRing, LargePrimeProfile, LargeRnsProfile};
+pub use large_modulus::{LargePrimeProfile, LargeRnsProfile};
 pub use large_prime::{Bls12_381Fq, Bls12_381Fr, Bn254Fq, Bn254Fr, LargePrimeField};
 pub use large_prime_profiles::{
     Bls12_381FqProfile, Bls12_381FrProfile, Bn254FqProfile, Bn254FrProfile,

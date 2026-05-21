@@ -14,8 +14,7 @@ use core::marker::PhantomData;
 use core::ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
 use super::bigint::BigUint;
-use super::large_modulus::LargeCanonicalRing;
-use super::ring::Ring;
+use super::ring::{IntegerRing, Ring};
 use grid_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
 use grid_std::rand::RngExt;
 
@@ -570,7 +569,7 @@ where
 
     /// Try to export as `u64`. Returns `None` if the canonical residue exceeds `u64::MAX`.
     pub fn try_to_u64(&self) -> Option<u64> {
-        <Self as LargeCanonicalRing>::try_to_u64(self)
+        <Self as IntegerRing>::try_to_u64(self)
     }
 
     fn reduce_canonical(value: &BigUint<LIMBS>) -> BigUint<LIMBS> {
@@ -887,9 +886,9 @@ where
     }
 }
 
-// --- LargeCanonicalRing ---
+// --- IntegerRing ---
 
-impl<P, const LIMBS: usize> LargeCanonicalRing for LargeZm<P, LIMBS>
+impl<P, const LIMBS: usize> IntegerRing for LargeZm<P, LIMBS>
 where
     P: LargeZmProfile<LIMBS>,
 {
@@ -936,6 +935,17 @@ where
             result = (result << 64) | canon.limbs[i] as u128;
         }
         Some(result)
+    }
+
+    fn lossy_l2_value(&self) -> f64 {
+        let v = self.to_canonical().lossy_l2_value();
+        let m = Self::modulus_canonical().lossy_l2_value();
+        let half = m * 0.5;
+        if v > half { v - m } else { v }
+    }
+
+    fn reduce(&self) -> Self {
+        *self
     }
 }
 

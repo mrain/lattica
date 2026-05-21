@@ -24,7 +24,10 @@ use crate::relation::QuadraticFunction;
 #[derive(Debug, Clone)]
 pub struct AggregatedFunction<R, const N: usize>
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N> + CanonicalSerialize + CanonicalDeserialize,
+    R: IntegerRing<Canonical = u64>
+        + NegacyclicMulRing<N>
+        + CanonicalSerialize
+        + CanonicalDeserialize,
 {
     /// Aggregated a_ij: sparse upper-triangular quadratic terms.
     pub a_ij: Vec<(usize, usize, CyclotomicPolyRing<R, N>)>,
@@ -61,7 +64,7 @@ pub fn sample_step1_challenges<R, T>(
     transcript: &mut T,
 ) -> Result<(Vec<Vec<R>>, Vec<Vec<R>>), T::Error>
 where
-    R: IntegerRing<Uint = u64>,
+    R: IntegerRing<Canonical = u64>,
     T: Transcript,
 {
     let ell = num_agg_batches(q);
@@ -105,7 +108,10 @@ pub fn compute_b_double_prime<R, const N: usize>(
     omega: &[Vec<R>],
 ) -> Vec<CyclotomicPolyRing<R, N>>
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N> + CanonicalSerialize + CanonicalDeserialize,
+    R: IntegerRing<Canonical = u64>
+        + NegacyclicMulRing<N>
+        + CanonicalSerialize
+        + CanonicalDeserialize,
 {
     let ell = psi.len();
     let mut b_dp = Vec::with_capacity(ell);
@@ -142,7 +148,10 @@ pub fn verify_b_double_prime<R, const N: usize>(
     b0_primes: &[R],
 ) -> Result<(), String>
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N> + CanonicalSerialize + CanonicalDeserialize,
+    R: IntegerRing<Canonical = u64>
+        + NegacyclicMulRing<N>
+        + CanonicalSerialize
+        + CanonicalDeserialize,
 {
     let q = R::modulus();
 
@@ -184,7 +193,10 @@ pub fn aggregate_step2_flat<R, const N: usize>(
     jl_rows_poly: &super::JlRowsFlat<CyclotomicPolyRing<R, N>>,
 ) -> AggregatedFunction<R, N>
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N> + CanonicalSerialize + CanonicalDeserialize,
+    R: IntegerRing<Canonical = u64>
+        + NegacyclicMulRing<N>
+        + CanonicalSerialize
+        + CanonicalDeserialize,
 {
     let num_jl = jl_rows_poly.num_rows();
     let r = jl_rows_poly.num_parts();
@@ -245,7 +257,10 @@ fn scale_and_add_poly<R, const N: usize>(
     scale: &CyclotomicPolyRing<R, N>,
     r: usize,
 ) where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N> + CanonicalSerialize + CanonicalDeserialize,
+    R: IntegerRing<Canonical = u64>
+        + NegacyclicMulRing<N>
+        + CanonicalSerialize
+        + CanonicalDeserialize,
 {
     func.for_each_quad(|(i, j, coeff)| {
         let scaled = coeff * scale;
@@ -272,7 +287,10 @@ fn scale_and_add_a_phi_only<R, const N: usize>(
     scale: &CyclotomicPolyRing<R, N>,
     r: usize,
 ) where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N> + CanonicalSerialize + CanonicalDeserialize,
+    R: IntegerRing<Canonical = u64>
+        + NegacyclicMulRing<N>
+        + CanonicalSerialize
+        + CanonicalDeserialize,
 {
     func.for_each_quad(|(i, j, coeff)| {
         let scaled = coeff * scale;

@@ -58,7 +58,7 @@ macro_rules! bail_t {
 /// polynomials to field elements via evaluation. Soundness depends on the
 /// smallest prime factor p of M (not M itself), per Theorem 6.3.
 #[derive(Debug, Clone)]
-pub struct ArithR1CSInstance<R: IntegerRing<Uint = u64>> {
+pub struct ArithR1CSInstance<R: IntegerRing<Canonical = u64>> {
     pub a_r1cs: RingMat<R>,
     pub b_r1cs: RingMat<R>,
     pub c_r1cs: RingMat<R>,
@@ -70,7 +70,7 @@ pub struct ArithR1CSInstance<R: IntegerRing<Uint = u64>> {
 #[derive(Debug, Clone)]
 pub struct ArithR1CSReduction<R, const N: usize>
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N>,
+    R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N>,
 {
     /// LaBRADOR statement (F: Ajtai opening + aggregation constraints)
     pub statement: LabradorStatement<CyclotomicPolyRing<R, N>>,
@@ -105,7 +105,7 @@ where
 /// Encode a single field element `a ∈ Z_M` as a polynomial in `R_q` using NAF.
 fn encode_naf<R, const N: usize>(a: u64, m: u64) -> CyclotomicPolyRing<R, N>
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N>,
+    R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N>,
 {
     // Reduce into [0, M) then center into [-(M-1)/2, (M-1)/2].
     // For M = 2^N + 1 this guarantees the signed value has magnitude
@@ -147,7 +147,7 @@ where
 /// Returns `None` if any coefficient is outside {-1, 0, 1}.
 pub fn verify_naf_coeffs<R, const N: usize>(poly: &CyclotomicPolyRing<R, N>) -> Option<usize>
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N>,
+    R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N>,
 {
     let q = R::modulus();
     let minus_one = q.wrapping_sub(1);
@@ -174,7 +174,7 @@ pub fn verify_naf_witness<R, const N: usize>(
     reduction: &ArithR1CSReduction<R, N>,
 ) -> Result<(), (usize, usize)>
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N>,
+    R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N>,
 {
     let witness = &reduction.witness;
     // All parts in the arithmetic reduction are NAF-encoded:
@@ -194,7 +194,7 @@ where
 /// Generic version without CanonicalSerialize/Deserialize bounds (for builder path).
 fn decode_naf_field<R, const N: usize>(poly: &CyclotomicPolyRing<R, N>, p: u64) -> u64
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N>,
+    R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N>,
 {
     let coeffs = poly.coeffs();
     let q: u64 = R::modulus();
@@ -224,13 +224,16 @@ where
 /// Version requiring CanonicalSerialize/Deserialize (used by recompute_and_verify).
 fn decode_naf<R, const N: usize>(poly: &CyclotomicPolyRing<R, N>, p: u64) -> u64
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N> + CanonicalSerialize + CanonicalDeserialize,
+    R: IntegerRing<Canonical = u64>
+        + NegacyclicMulRing<N>
+        + CanonicalSerialize
+        + CanonicalDeserialize,
 {
     decode_naf_field::<R, N>(poly, p)
 }
 
 /// Compute Hadamard product of two vectors of field elements.
-fn hadamard_product<R: IntegerRing<Uint = u64>>(a: &[R], b: &[R], m: u64) -> Vec<R> {
+fn hadamard_product<R: IntegerRing<Canonical = u64>>(a: &[R], b: &[R], m: u64) -> Vec<R> {
     a.iter()
         .zip(b.iter())
         .map(|(ai, bi)| {
@@ -260,7 +263,7 @@ pub fn check_divisible_by_x_minus_2<R, const N: usize>(
     m: u64,
 ) -> bool
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N>,
+    R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N>,
 {
     let coeffs = poly.coeffs();
     let q: u64 = R::modulus();
@@ -283,7 +286,7 @@ where
 }
 
 /// Compute matrix-vector product mod M.
-fn mat_vec_mod_m<R: IntegerRing<Uint = u64>>(mat: &RingMat<R>, w: &[R], m: u64) -> Vec<R> {
+fn mat_vec_mod_m<R: IntegerRing<Canonical = u64>>(mat: &RingMat<R>, w: &[R], m: u64) -> Vec<R> {
     let m_i128 = m as i128;
     let mut result = Vec::with_capacity(mat.rows());
     for i in 0..mat.rows() {
@@ -332,7 +335,7 @@ fn build_f_aggregation_rq<R, const N: usize>(
     CyclotomicPolyRing<R, N>,
 )
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N>,
+    R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N>,
 {
     let zero = CyclotomicPolyRing::<R, N>::zero();
     let one = CyclotomicPolyRing::<R, N>::one();
@@ -473,7 +476,7 @@ pub fn build_arith_r1cs_reduction<R, Rng, const N: usize>(
     l: usize,
 ) -> Result<ArithR1CSReduction<R, N>, LabradorError>
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N>,
+    R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N>,
     Rng: RngExt,
 {
     let k = instance.a_r1cs.rows();
@@ -820,7 +823,7 @@ pub fn build_arith_r1cs_reduction_transcript<R, T, const N: usize>(
     l: usize,
 ) -> Result<ArithR1CSReduction<R, N>, TranscriptError>
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N>,
+    R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N>,
     T: grid_transcript::Transcript,
 {
     let k = instance.a_r1cs.rows();
@@ -1113,7 +1116,7 @@ where
 /// round of passing this check.
 pub fn verify_aggregation<R, const N: usize>(reduction: &ArithR1CSReduction<R, N>) -> bool
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N>,
+    R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N>,
 {
     reduction
         .g_polys
@@ -1132,7 +1135,7 @@ where
 /// (after Ajtai opening constraints).
 pub fn verify_aggregation_rq<R, const N: usize>(reduction: &ArithR1CSReduction<R, N>) -> bool
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N>,
+    R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N>,
 {
     // 1. Verify NAF coefficients are in {-1, 0, 1}
     if verify_naf_witness(reduction).is_err() {
@@ -1174,7 +1177,10 @@ pub fn recompute_and_verify<R, const N: usize>(
     reduction: &ArithR1CSReduction<R, N>,
 ) -> bool
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N> + CanonicalSerialize + CanonicalDeserialize,
+    R: IntegerRing<Canonical = u64>
+        + NegacyclicMulRing<N>
+        + CanonicalSerialize
+        + CanonicalDeserialize,
 {
     let k = instance.a_r1cs.rows();
     let n = instance.a_r1cs.cols();
@@ -1225,7 +1231,7 @@ pub fn sample_arith_challenges<R, Rng>(
     rng: &mut Rng,
 ) -> (Vec<Vec<R>>, Vec<Vec<R>>)
 where
-    R: IntegerRing<Uint = u64>,
+    R: IntegerRing<Canonical = u64>,
     Rng: RngExt,
 {
     let phi_challenges: Vec<Vec<R>> = (0..l)
@@ -1257,7 +1263,7 @@ fn challenge_mod_m<R, T>(
     m: u64,
 ) -> Result<R, TranscriptError>
 where
-    R: IntegerRing<Uint = u64>,
+    R: IntegerRing<Canonical = u64>,
     T: grid_transcript::Transcript,
 {
     // Compute rejection threshold: largest multiple of M that fits in u64
@@ -1285,7 +1291,7 @@ pub fn sample_arith_challenges_transcript<R, T>(
     transcript: &mut T,
 ) -> Result<(Vec<Vec<R>>, Vec<Vec<R>>), TranscriptError>
 where
-    R: IntegerRing<Uint = u64>,
+    R: IntegerRing<Canonical = u64>,
     T: grid_transcript::Transcript,
 {
     let mut phi_challenges = Vec::with_capacity(l);

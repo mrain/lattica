@@ -6,7 +6,7 @@ use core::ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
 use super::bigint::BigUint;
 use super::composite::CompositeRing;
-use super::large_modulus::{LargeCanonicalRing, LargeRnsProfile};
+use super::large_modulus::LargeRnsProfile;
 use super::large_rns_profiles::Rns3V0Profile;
 use super::ntt::{NTTRing, NttError, NttPlan, cached_ntt_plan};
 use super::ring::{IntegerRing, Ring};
@@ -457,37 +457,6 @@ impl<P, const LIMBS: usize> IntegerRing for LargeRns<P, LIMBS>
 where
     P: LargeRnsProfile<LIMBS>,
 {
-    type Uint = BigUint<LIMBS>;
-
-    fn modulus() -> Self::Uint {
-        BigUint { limbs: P::MODULUS }
-    }
-
-    fn from_u64(val: u64) -> Self {
-        Self::from_small_u64(val)
-    }
-
-    fn to_u64(&self) -> u64 {
-        self.try_to_u64()
-            .expect("large-RNS element does not fit in u64")
-    }
-
-    fn lossy_l2_value(&self) -> f64 {
-        let v = self.to_canonical().lossy_l2_value();
-        let m = Self::modulus_canonical().lossy_l2_value();
-        let half = m * 0.5;
-        if v > half { v - m } else { v }
-    }
-
-    fn reduce(&self) -> Self {
-        *self
-    }
-}
-
-impl<P, const LIMBS: usize> LargeCanonicalRing for LargeRns<P, LIMBS>
-where
-    P: LargeRnsProfile<LIMBS>,
-{
     type Canonical = BigUint<LIMBS>;
 
     fn modulus_canonical() -> Self::Canonical {
@@ -513,6 +482,17 @@ where
 
     fn try_to_u128(&self) -> Option<u128> {
         self.to_canonical().try_to_u128()
+    }
+
+    fn lossy_l2_value(&self) -> f64 {
+        let v = self.to_canonical().lossy_l2_value();
+        let m = Self::modulus_canonical().lossy_l2_value();
+        let half = m * 0.5;
+        if v > half { v - m } else { v }
+    }
+
+    fn reduce(&self) -> Self {
+        *self
     }
 }
 
@@ -652,15 +632,14 @@ mod tests {
     use alloc::sync::Arc;
 
     use super::Rns3V0;
-    use crate::arith::LargeCanonicalRing;
     use crate::arith::bigint::BigUint;
     use crate::arith::ring::{self, IntegerRing};
     use grid_serialize::{CanonicalDeserialize, CanonicalSerialize, Valid};
 
     fn exercise_large_rns_profile<R, const LIMBS: usize>()
     where
-        R: IntegerRing<Uint = BigUint<LIMBS>>
-            + LargeCanonicalRing<Canonical = BigUint<LIMBS>>
+        R: IntegerRing<Canonical = BigUint<LIMBS>>
+            + IntegerRing<Canonical = BigUint<LIMBS>>
             + CanonicalSerialize
             + CanonicalDeserialize
             + Valid,

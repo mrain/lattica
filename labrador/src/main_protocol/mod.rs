@@ -42,7 +42,7 @@ pub fn absorb_public_input<R, const N: usize, T>(
     params: &LabradorParams,
 ) -> Result<(), String>
 where
-    R: IntegerRing<Uint = u64> + CanonicalSerialize + CanonicalDeserialize,
+    R: IntegerRing<Canonical = u64> + CanonicalSerialize + CanonicalDeserialize,
     CyclotomicPolyRing<R, N>: CanonicalSerialize,
     T: grid_transcript::Transcript,
 {
@@ -94,7 +94,7 @@ fn absorb_quadratic_func<R, const N: usize, T>(
     idx: usize,
 ) -> Result<(), String>
 where
-    R: IntegerRing<Uint = u64> + CanonicalSerialize + CanonicalDeserialize,
+    R: IntegerRing<Canonical = u64> + CanonicalSerialize + CanonicalDeserialize,
     CyclotomicPolyRing<R, N>: CanonicalSerialize,
     T: grid_transcript::Transcript,
 {
@@ -191,7 +191,7 @@ where
 /// For paper-size q ≈ 2^32 the u128 accumulation is exact; the final f64
 /// conversion may lose low-order bits for very large norms. For larger q,
 /// overflow triggers conservative rejection.
-pub fn squared_l2_norm<'a, R: IntegerRing<Uint = u64>>(
+pub fn squared_l2_norm<'a, R: IntegerRing<Canonical = u64>>(
     elems: impl AsRef<[R]> + 'a,
 ) -> Result<f64, &'static str> {
     let q = R::modulus();
@@ -221,7 +221,7 @@ pub fn squared_l2_norm<'a, R: IntegerRing<Uint = u64>>(
 /// Same algorithm as [`squared_l2_norm`] but preserves the exact u128 value
 /// instead of converting to f64. Use this for security-critical threshold
 /// comparisons to avoid floating-point rounding at the ULP boundary.
-pub fn squared_l2_norm_u128<R: IntegerRing<Uint = u64>>(
+pub fn squared_l2_norm_u128<R: IntegerRing<Canonical = u64>>(
     elems: impl AsRef<[R]>,
 ) -> Result<u128, &'static str> {
     let q = R::modulus();
@@ -296,7 +296,7 @@ fn centered_mod(v: i128, base: i128) -> i128 {
 pub fn decompose_poly_balanced<Rq>(poly: &Rq, base: u64, num_limbs: usize) -> Vec<Rq>
 where
     Rq: PolyRing,
-    Rq::Coeff: IntegerRing<Uint = u64>,
+    Rq::Coeff: IntegerRing<Canonical = u64>,
 {
     let q = Rq::Coeff::modulus();
     let n = Rq::degree();
@@ -331,7 +331,7 @@ where
 pub fn reconstruct_from_limbs<Rq>(limbs: &[Rq], base: u64) -> Rq
 where
     Rq: PolyRing,
-    Rq::Coeff: IntegerRing<Uint = u64>,
+    Rq::Coeff: IntegerRing<Canonical = u64>,
 {
     let q = Rq::Coeff::modulus();
     let n = Rq::degree();
@@ -377,7 +377,7 @@ pub struct DecomposedPolys<Rq> {
 impl<Rq> CanonicalSerialize for DecomposedPolys<Rq>
 where
     Rq: PolyRing,
-    Rq::Coeff: IntegerRing<Uint = u64>,
+    Rq::Coeff: IntegerRing<Canonical = u64>,
 {
     fn serialized_size(&self) -> usize {
         // Use saturating arithmetic so malformed in-memory values never panic.
@@ -512,7 +512,7 @@ where
 impl<Rq> CanonicalDeserialize for DecomposedPolys<Rq>
 where
     Rq: PolyRing,
-    Rq::Coeff: IntegerRing<Uint = u64>,
+    Rq::Coeff: IntegerRing<Canonical = u64>,
 {
     fn deserialize(data: &[u8]) -> Result<(Self, usize), SerializationError> {
         if data.len() < 16 {
@@ -641,7 +641,7 @@ where
 impl<Rq> DecomposedPolys<Rq>
 where
     Rq: PolyRing,
-    Rq::Coeff: IntegerRing<Uint = u64>,
+    Rq::Coeff: IntegerRing<Canonical = u64>,
 {
     /// Reconstruct original polynomials from balanced limbs.
     /// Returns `num_polys` polynomials of the same Rq type.
@@ -707,7 +707,7 @@ pub fn reconstruct_t_vecs<Rq>(
 ) -> Vec<RingVec<Rq>>
 where
     Rq: PolyRing,
-    Rq::Coeff: IntegerRing<Uint = u64>,
+    Rq::Coeff: IntegerRing<Canonical = u64>,
 {
     let mut t_vecs = Vec::with_capacity(r);
     for wi in 0..r {
@@ -731,7 +731,7 @@ where
 pub fn decompose_polys<Rq>(polys: &[Rq], base: u64, num_limbs: usize) -> DecomposedPolys<Rq>
 where
     Rq: PolyRing,
-    Rq::Coeff: IntegerRing<Uint = u64>,
+    Rq::Coeff: IntegerRing<Canonical = u64>,
 {
     let mut flat = Vec::with_capacity(polys.len() * num_limbs);
     for poly in polys {
@@ -753,7 +753,7 @@ where
 pub fn challenge_poly<Rq, T>(transcript: &mut T, label: &'static [u8]) -> Result<Rq, T::Error>
 where
     Rq: PolyRing,
-    Rq::Coeff: IntegerRing<Uint = u64>,
+    Rq::Coeff: IntegerRing<Canonical = u64>,
     T: Transcript,
 {
     let n = Rq::degree();
@@ -837,7 +837,7 @@ pub fn jl_rows_to_conjugated_polys_flat<R, const N: usize>(
     q: u64,
 ) -> JlRowsFlat<CyclotomicPolyRing<R, N>>
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N>,
+    R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N>,
 {
     let num_rows = jl_rows_raw.len();
     let num_parts = jl_rows_raw[0].len();
@@ -890,7 +890,7 @@ pub fn jl_rows_flat_to_conjugated_polys<R, const N: usize>(
     q: u64,
 ) -> JlRowsFlat<CyclotomicPolyRing<R, N>>
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N>,
+    R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N>,
 {
     let total = num_rows * num_parts * n;
     let mut data = Vec::with_capacity(total);
@@ -931,7 +931,7 @@ pub trait Transcript {
     fn append_bytes(&mut self, label: &'static [u8], data: &[u8]) -> Result<(), Self::Error>;
     fn challenge_scalar<R>(&mut self, label: &'static [u8]) -> Result<R, Self::Error>
     where
-        R: IntegerRing<Uint = u64>;
+        R: IntegerRing<Canonical = u64>;
 }
 
 // Blanket impl: any `grid_transcript::Transcript` also satisfies our local trait.
@@ -944,7 +944,7 @@ impl<T: grid_transcript::Transcript> Transcript for T {
 
     fn challenge_scalar<R>(&mut self, label: &'static [u8]) -> Result<R, Self::Error>
     where
-        R: IntegerRing<Uint = u64>,
+        R: IntegerRing<Canonical = u64>,
     {
         <Self as grid_transcript::Transcript>::challenge_scalar(self, label)
     }

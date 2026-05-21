@@ -42,7 +42,10 @@ pub fn verify_last_level<R, const N: usize, T>(
     transcript: &mut T,
 ) -> Result<(), LabradorError>
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N> + CanonicalSerialize + CanonicalDeserialize,
+    R: IntegerRing<Canonical = u64>
+        + NegacyclicMulRing<N>
+        + CanonicalSerialize
+        + CanonicalDeserialize,
     T: Transcript,
 {
     let nu = params.nu;
@@ -390,7 +393,7 @@ fn validate_last_level_statement<R, const N: usize>(
     nu: usize,
 ) -> Result<(), String>
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N>,
+    R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N>,
 {
     for (fi, f) in statement.f.iter().enumerate() {
         validate_last_level_function(f, fi, "F", r_last, n_last, nu, false)?;
@@ -411,7 +414,7 @@ fn validate_last_level_function<R, const N: usize>(
     fprime: bool,
 ) -> Result<(), String>
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N>,
+    R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N>,
 {
     match f {
         crate::relation::QuadraticFunction::Dense(d) => {

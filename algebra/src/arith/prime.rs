@@ -5,7 +5,6 @@
 
 use core::ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
-use super::large_modulus::LargeCanonicalRing;
 use super::limb::UintLimb;
 use super::ntt::{NTTRing, NttError, NttPlan, cached_ntt_plan};
 use super::ring::{Field, IntegerRing, Ring};
@@ -508,28 +507,43 @@ impl<const Q: u64, L: UintLimb> Ring for PrimeField<Q, L> {
 }
 
 impl<const Q: u64, L: UintLimb> IntegerRing for PrimeField<Q, L> {
-    type Uint = u64;
+    type Canonical = u64;
 
     #[inline]
-    fn modulus() -> u64 {
+    fn modulus_canonical() -> u64 {
         Self::check_modulus();
         Self::MODULUS
     }
 
     #[inline]
-    fn from_u64(val: u64) -> Self {
+    fn from_small_u64(val: u64) -> Self {
         Self::to_montgomery(L::from_u64(val % Q))
     }
 
     #[inline]
-    fn to_u64(&self) -> u64 {
+    fn from_canonical(value: &u64) -> Self {
+        Self::from_small_u64(*value)
+    }
+
+    #[inline]
+    fn to_canonical(&self) -> u64 {
         self.from_montgomery().to_u64()
+    }
+
+    #[inline]
+    fn try_to_u64(&self) -> Option<u64> {
+        Some(self.to_canonical())
+    }
+
+    #[inline]
+    fn try_to_u128(&self) -> Option<u128> {
+        Some(self.to_canonical() as u128)
     }
 
     #[inline]
     fn lossy_l2_value(&self) -> f64 {
         let v = self.from_montgomery().to_u64() as f64;
-        let q = Self::modulus() as f64;
+        let q = Self::modulus_canonical() as f64;
         let half = q * 0.5;
         if v > half { v - q } else { v }
     }
@@ -546,40 +560,6 @@ impl<const Q: u64, L: UintLimb> Field for PrimeField<Q, L> {
         Self::check_modulus();
         assert!(!self.is_zero(), "cannot invert zero");
         self.pow(Q - 2)
-    }
-}
-
-impl<const Q: u64, L: UintLimb> LargeCanonicalRing for PrimeField<Q, L> {
-    type Canonical = u64;
-
-    #[inline]
-    fn modulus_canonical() -> Self::Canonical {
-        Self::MODULUS
-    }
-
-    #[inline]
-    fn from_small_u64(value: u64) -> Self {
-        Self::from_u64(value)
-    }
-
-    #[inline]
-    fn from_canonical(value: &Self::Canonical) -> Self {
-        Self::from_u64(*value)
-    }
-
-    #[inline]
-    fn to_canonical(&self) -> Self::Canonical {
-        self.to_u64()
-    }
-
-    #[inline]
-    fn try_to_u64(&self) -> Option<u64> {
-        Some(self.to_u64())
-    }
-
-    #[inline]
-    fn try_to_u128(&self) -> Option<u128> {
-        Some(self.to_u64() as u128)
     }
 }
 
@@ -1416,8 +1396,6 @@ mod tests {
 
     #[test]
     fn test_prime_field_large_canonical_ring_round_trip() {
-        use super::LargeCanonicalRing;
-
         let value = F17::from_small_u64(19);
         assert_eq!(value.to_canonical(), 2);
         assert_eq!(F17::modulus_canonical(), 17);

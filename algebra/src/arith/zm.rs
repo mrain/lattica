@@ -9,7 +9,6 @@
 
 use core::ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
-use super::large_modulus::LargeCanonicalRing;
 use super::limb::UintLimb;
 use super::ring::{IntegerRing, Ring};
 use grid_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
@@ -418,22 +417,34 @@ impl<const M: u64, L: UintLimb> Ring for Zm<M, L> {
 // --- IntegerRing impl ---
 
 impl<const M: u64, L: UintLimb> IntegerRing for Zm<M, L> {
-    type Uint = u64;
+    type Canonical = u64;
 
-    fn modulus() -> u64 {
+    fn modulus_canonical() -> u64 {
         Self::MODULUS
     }
 
-    fn from_u64(val: u64) -> Self {
+    fn from_small_u64(val: u64) -> Self {
         Self::encode_canonical(val)
     }
 
-    fn to_u64(&self) -> u64 {
+    fn from_canonical(value: &u64) -> Self {
+        Self::from_small_u64(*value)
+    }
+
+    fn to_canonical(&self) -> u64 {
         self.decode_canonical()
     }
 
+    fn try_to_u64(&self) -> Option<u64> {
+        Some(self.to_canonical())
+    }
+
+    fn try_to_u128(&self) -> Option<u128> {
+        Some(self.to_canonical() as u128)
+    }
+
     fn lossy_l2_value(&self) -> f64 {
-        let val = self.to_u64();
+        let val = self.to_canonical();
         let m = Self::MODULUS;
         // Centered representation in [-m/2, m/2).
         // For odd m: val > m/2 is the negative half.
@@ -502,36 +513,6 @@ impl<const M: u64, L: UintLimb> grid_std::UniformRand for Zm<M, L> {
                 return Self::from_u64(sample % Self::MODULUS);
             }
         }
-    }
-}
-
-// --- LargeCanonicalRing ---
-
-impl<const M: u64, L: UintLimb> LargeCanonicalRing for Zm<M, L> {
-    type Canonical = u64;
-
-    fn modulus_canonical() -> u64 {
-        Self::MODULUS
-    }
-
-    fn from_small_u64(value: u64) -> Self {
-        Self::from_u64(value)
-    }
-
-    fn from_canonical(value: &u64) -> Self {
-        Self::from_u64(*value)
-    }
-
-    fn to_canonical(&self) -> u64 {
-        self.to_u64()
-    }
-
-    fn try_to_u64(&self) -> Option<u64> {
-        Some(self.to_u64())
-    }
-
-    fn try_to_u128(&self) -> Option<u128> {
-        Some(self.to_u64() as u128)
     }
 }
 
@@ -713,7 +694,6 @@ mod tests {
 
     #[test]
     fn test_large_canonical() {
-        use super::LargeCanonicalRing;
         let val = Z257::from_u64(42);
         let canon = val.to_canonical();
         assert_eq!(canon, 42);

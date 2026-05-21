@@ -1,7 +1,6 @@
 //! Norm helpers for lattice objects.
 
 use crate::arith::bigint::BigUint;
-use crate::arith::large_modulus::LargeCanonicalRing;
 use crate::arith::ring::{IntegerRing, Ring};
 use crate::lattice::types::RingVec;
 use crate::poly::ring::{CyclotomicPolyRing, NegacyclicMulRing, PolyRing};
@@ -212,7 +211,7 @@ pub trait VectorNormBound<R: Ring>:
     fn check_vector(&self, v: &RingVec<R>) -> bool;
 }
 
-impl<R: IntegerRing<Uint = u64>> NormedRing for R {
+impl<R: IntegerRing<Canonical = u64>> NormedRing for R {
     fn l2_norm_sq(&self) -> u128 {
         let a = centered_abs_u64(self.to_u64(), R::modulus()) as u128;
         a.saturating_mul(a)
@@ -225,7 +224,7 @@ impl<R: IntegerRing<Uint = u64>> NormedRing for R {
 
 impl<R, C> LargeNormedRing for R
 where
-    R: LargeCanonicalRing<Canonical = C>,
+    R: IntegerRing<Canonical = C>,
     C: CanonicalNormEmbedding,
 {
     // Word-sized backends such as PrimeField<Q> can implement both NormedRing and
@@ -245,7 +244,7 @@ where
 
 impl<R, const N: usize> NormedRing for CyclotomicPolyRing<R, N>
 where
-    R: NegacyclicMulRing<N, Uint = u64>,
+    R: NegacyclicMulRing<N, Canonical = u64>,
 {
     fn l2_norm_sq(&self) -> u128 {
         self.coeffs()
@@ -540,7 +539,6 @@ fn int_sqrt_ceil(n: u128) -> u128 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::arith::LargeCanonicalRing;
     use crate::arith::bigint::BigUint;
     use crate::arith::large_prime::Bn254Fr;
     use crate::arith::large_rns::Rns3V0;

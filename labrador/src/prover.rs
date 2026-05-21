@@ -46,7 +46,7 @@ use crate::traits::LabradorProofRing;
 #[derive(Debug, Clone)]
 pub struct ProverOutput<R, const N: usize>
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N> + UniformRand,
+    R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N> + UniformRand,
 {
     pub proof: LabradorProof<R, N>,
     pub private_witnesses: Vec<LevelPrivateWitness<R, N>>,
@@ -239,7 +239,7 @@ fn derive_target_for_prover<R, const N: usize>(
     challenges: &[CyclotomicPolyRing<R, N>],
 ) -> RecursiveTarget<R, N>
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N> + UniformRand,
+    R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N> + UniformRand,
 {
     let z_parts = crate::recursion::decompose::decompose_z(&private_witness.z, params.b);
     let v = bundle_v(
@@ -262,7 +262,7 @@ fn bundle_v<R, const N: usize>(
     h_decomposed: &[CyclotomicPolyRing<R, N>],
 ) -> Vec<CyclotomicPolyRing<R, N>>
 where
-    R: IntegerRing<Uint = u64> + CanonicalSerialize + CanonicalDeserialize,
+    R: IntegerRing<Canonical = u64> + CanonicalSerialize + CanonicalDeserialize,
 {
     let mut v = Vec::with_capacity(t_decomposed.len() + g_decomposed.len() + h_decomposed.len());
     v.extend_from_slice(t_decomposed);

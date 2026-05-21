@@ -71,7 +71,7 @@ fn prepared_key_ref<C, const N: usize>(
 where
     C: Field
         + NTTRing
-        + NegacyclicMulRing<N, Uint = u64>
+        + NegacyclicMulRing<N, Canonical = u64>
         + CanonicalSerialize
         + CanonicalDeserialize
         + UniformRand
@@ -173,7 +173,7 @@ where
     C: Field
         + NTTRing
         + CommitmentSampleRing
-        + NegacyclicMulRing<N, Uint = u64>
+        + NegacyclicMulRing<N, Canonical = u64>
         + CanonicalSerialize
         + CanonicalDeserialize
         + UniformRand
@@ -339,7 +339,7 @@ where
     C: Field
         + NTTRing
         + CommitmentSampleRing
-        + NegacyclicMulRing<N, Uint = u64>
+        + NegacyclicMulRing<N, Canonical = u64>
         + CanonicalSerialize
         + CanonicalDeserialize
         + UniformRand

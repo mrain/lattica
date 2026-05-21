@@ -228,7 +228,7 @@ where
         params: &LabradorParams,
     ) -> DecomposedPolys<CyclotomicPolyRing<R, N>>
     where
-        R: IntegerRing<Uint = u64>,
+        R: IntegerRing<Canonical = u64>,
     {
         let r = witness.num_parts();
         let kappa = params.kappa;

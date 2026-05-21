@@ -133,7 +133,7 @@ impl<const K: u32> GadgetRing for Z2K<K> {
 
 impl<C, const N: usize> GadgetRing for CyclotomicPolyRing<C, N>
 where
-    C: NegacyclicMulRing<N, Uint = u64> + CommitmentSampleRing + UniformRand + Valid,
+    C: NegacyclicMulRing<N, Canonical = u64> + CommitmentSampleRing + UniformRand + Valid,
 {
     fn gadget_digit_count(base: u64) -> usize {
         gadget_vector::<C>(base).len()

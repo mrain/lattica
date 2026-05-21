@@ -180,7 +180,7 @@ impl<const N: usize> FoldingChallengeSampler<N> {
     /// (should be caught by the liveness probe in `new()`).
     pub fn sample<R, Rng>(&self, rng: &mut Rng) -> CyclotomicPolyRing<R, N>
     where
-        R: IntegerRing<Uint = u64> + NegacyclicMulRing<N>,
+        R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N>,
         Rng: RngExt,
     {
         self.try_sample(rng, 1000)
@@ -198,7 +198,7 @@ impl<const N: usize> FoldingChallengeSampler<N> {
         max_attempts: usize,
     ) -> Option<CyclotomicPolyRing<R, N>>
     where
-        R: IntegerRing<Uint = u64> + NegacyclicMulRing<N>,
+        R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N>,
         Rng: RngExt,
     {
         let threshold = self.profile.T;
@@ -224,7 +224,7 @@ impl<const N: usize> FoldingChallengeSampler<N> {
         label: &'static [u8],
     ) -> Result<CyclotomicPolyRing<R, N>, LabradorError>
     where
-        R: IntegerRing<Uint = u64> + NegacyclicMulRing<N>,
+        R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N>,
         T: Transcript,
     {
         self.try_sample_transcript(transcript, label, 1000)
@@ -242,7 +242,7 @@ impl<const N: usize> FoldingChallengeSampler<N> {
         max_attempts: usize,
     ) -> Result<CyclotomicPolyRing<R, N>, LabradorError>
     where
-        R: IntegerRing<Uint = u64> + NegacyclicMulRing<N>,
+        R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N>,
         T: Transcript,
     {
         let threshold = self.profile.T;
@@ -274,7 +274,7 @@ impl<const N: usize> FoldingChallengeSampler<N> {
         count: usize,
     ) -> alloc::vec::Vec<CyclotomicPolyRing<R, N>>
     where
-        R: IntegerRing<Uint = u64> + NegacyclicMulRing<N>,
+        R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N>,
         Rng: RngExt,
     {
         let mut challenges = alloc::vec::Vec::with_capacity(count);
@@ -292,7 +292,7 @@ impl<const N: usize> FoldingChallengeSampler<N> {
         count: usize,
     ) -> Result<alloc::vec::Vec<CyclotomicPolyRing<R, N>>, LabradorError>
     where
-        R: IntegerRing<Uint = u64> + NegacyclicMulRing<N>,
+        R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N>,
         T: Transcript,
     {
         let mut challenges = alloc::vec::Vec::with_capacity(count);
@@ -307,7 +307,7 @@ impl<const N: usize> FoldingChallengeSampler<N> {
     /// and the ring-element polynomial.
     fn draw_once<R, Rng>(&self, rng: &mut Rng) -> ([i8; N], CyclotomicPolyRing<R, N>)
     where
-        R: IntegerRing<Uint = u64> + NegacyclicMulRing<N>,
+        R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N>,
         Rng: RngExt,
     {
         // Copy magnitudes and randomize: shuffle positions, assign signs.
@@ -331,7 +331,7 @@ impl<const N: usize> FoldingChallengeSampler<N> {
     /// Used internally by `sample_transcript` to bridge transcript → RNG → sampler.
     fn draw_once_chacha<R>(&self, cipher: &mut ChaCha20) -> ([i8; N], CyclotomicPolyRing<R, N>)
     where
-        R: IntegerRing<Uint = u64> + NegacyclicMulRing<N>,
+        R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N>,
     {
         // Copy magnitudes and randomize: shuffle positions, assign signs.
         let mut coeffs = self.magnitudes;
@@ -352,7 +352,7 @@ impl<const N: usize> FoldingChallengeSampler<N> {
 }
 
 /// Encode a signed integer into a ring element.
-fn encode_signed<R: IntegerRing<Uint = u64>>(v: i64) -> R {
+fn encode_signed<R: IntegerRing<Canonical = u64>>(v: i64) -> R {
     if v >= 0 {
         R::from_u64(v as u64)
     } else {
@@ -632,7 +632,7 @@ mod tests {
     /// Convert a polynomial to signed i8 coefficients (centered representatives).
     fn poly_to_i8<R, const N: usize>(poly: &CyclotomicPolyRing<R, N>) -> [i8; N]
     where
-        R: IntegerRing<Uint = u64> + NegacyclicMulRing<N>,
+        R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N>,
     {
         let modulus = R::modulus();
         debug_assert_ne!(modulus, 0, "IntegerRing modulus must be non-zero");

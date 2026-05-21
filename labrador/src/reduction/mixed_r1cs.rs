@@ -27,7 +27,7 @@ use crate::relation::{LabradorStatement, LabradorWitness, QuadraticFunction, ver
 
 /// Combined binary + arithmetic R1CS instance.
 #[derive(Debug, Clone)]
-pub struct MixedR1CSInstance<R: IntegerRing<Uint = u64>> {
+pub struct MixedR1CSInstance<R: IntegerRing<Canonical = u64>> {
     pub binary: BinaryR1CSInstance<R>,
     pub arithmetic: ArithR1CSInstance<R>,
 }
@@ -36,7 +36,7 @@ pub struct MixedR1CSInstance<R: IntegerRing<Uint = u64>> {
 #[derive(Debug, Clone)]
 pub struct MixedR1CSReduction<R, const N: usize>
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N>,
+    R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N>,
 {
     pub statement: LabradorStatement<CyclotomicPolyRing<R, N>>,
     pub witness: LabradorWitness<CyclotomicPolyRing<R, N>>,
@@ -138,7 +138,7 @@ fn combine_reductions<R, const N: usize>(
     arith_reduction: ArithR1CSReduction<R, N>,
 ) -> MixedR1CSReduction<R, N>
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N>,
+    R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N>,
 {
     let binary_num_parts = binary_reduction.witness.num_parts();
     let arith_num_parts = arith_reduction.witness.num_parts();
@@ -233,7 +233,7 @@ pub fn build_mixed_r1cs_reduction<R, Rng, const N: usize>(
     l_arithmetic: usize,
 ) -> Result<MixedR1CSReduction<R, N>, LabradorError>
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N>,
+    R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N>,
     Rng: RngExt,
 {
     let binary_reduction = build_binary_r1cs_reduction::<R, Rng, N>(
@@ -272,7 +272,7 @@ pub fn build_mixed_r1cs_reduction_transcript<R, T, const N: usize>(
     l_arithmetic: usize,
 ) -> Result<MixedR1CSReduction<R, N>, TranscriptError>
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N>,
+    R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N>,
     T: grid_transcript::Transcript,
 {
     let binary_reduction = build_binary_r1cs_reduction_transcript::<R, T, N>(
@@ -310,7 +310,7 @@ pub fn verify_mixed_r1cs_reduction<R, const N: usize>(
     max_norm_bound: f64,
 ) -> Result<(), String>
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N>,
+    R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N>,
 {
     // 1. Verify LaBRADOR relation (combined binary + arithmetic F/F' constraints)
     verify(&reduction.statement, &reduction.witness, max_norm_bound)?;

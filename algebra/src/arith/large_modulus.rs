@@ -1,12 +1,4 @@
-//! Companion traits for large-modulus backends.
-//!
-//! These traits sit beside the existing word-sized [`IntegerRing`](super::ring::IntegerRing)
-//! hierarchy so new backends can expose canonical wide values without forcing the current fast path
-//! through a lowest-common-denominator API.
-
-use core::fmt::Debug;
-
-use super::ring::Ring;
+//! Companion profile traits for large-modulus backends.
 
 const fn mul_limbs_by_word<const LIMBS: usize>(
     value: [u64; LIMBS],
@@ -59,30 +51,6 @@ const fn rns_profile_shape_is_valid<const LIMBS: usize>(
     }
 
     limbs_equal(running, modulus)
-}
-
-/// A ring that can export and import a canonical representative wider than `u64`.
-pub trait LargeCanonicalRing: Ring {
-    /// Canonical representative type used by this backend.
-    type Canonical: Clone + Debug + PartialEq + Eq + PartialOrd + Ord;
-
-    /// Return the modulus in canonical form.
-    fn modulus_canonical() -> Self::Canonical;
-
-    /// Embed a small `u64` value.
-    fn from_small_u64(value: u64) -> Self;
-
-    /// Reduce a canonical representative into the ring.
-    fn from_canonical(value: &Self::Canonical) -> Self;
-
-    /// Export the canonical representative.
-    fn to_canonical(&self) -> Self::Canonical;
-
-    /// Return the value as `u64` if it fits exactly.
-    fn try_to_u64(&self) -> Option<u64>;
-
-    /// Return the value as `u128` if it fits exactly.
-    fn try_to_u128(&self) -> Option<u128>;
 }
 
 /// Compile-time metadata for a fixed-limb large-prime profile.
