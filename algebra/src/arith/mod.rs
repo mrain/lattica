@@ -29,7 +29,11 @@ pub use large_prime_profiles::{
 pub use large_rns::{LargeRns, Rns3V0};
 pub use large_rns_profiles::Rns3V0Profile;
 pub use large_zm::LargeZm;
+pub use large_zm_profiles::Fermat64Profile;
 pub use limb::UintLimb;
 pub use ntt::NTTRing;
 pub use ring::{Field, IntegerRing, Ring};
 pub use zm::Zm;
+
+/// Fermat ring `Z/(2^64 + 1)Z` for the arithmetic R1CS reduction path.
+pub type FermatRing64 = LargeZm<Fermat64Profile, 2>;
