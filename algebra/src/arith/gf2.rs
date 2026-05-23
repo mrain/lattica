@@ -399,7 +399,8 @@ impl IntegerRing for GF2 {
 
     #[inline]
     fn lossy_l2_value(&self) -> f64 {
-        if self.0 == 0 { 0.0 } else { 1.0 }
+        // Centered in [-1, 0]: 1 ≡ -1 (mod 2).
+        if self.0 == 0 { 0.0 } else { -1.0 }
     }
 
     #[inline]
@@ -544,7 +545,7 @@ mod tests {
     #[test]
     fn lossy_l2_value() {
         assert_eq!(GF2(0).lossy_l2_value(), 0.0);
-        assert_eq!(GF2(1).lossy_l2_value(), 1.0);
+        assert_eq!(GF2(1).lossy_l2_value(), -1.0);
     }
 
     #[test]

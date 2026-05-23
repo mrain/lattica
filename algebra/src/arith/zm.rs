@@ -451,7 +451,7 @@ impl<const M: u64, L: UintLimb> IntegerRing for Zm<M, L> {
         // For even m: val >= m/2 is the negative half.
         let mid = m / 2;
         if val > mid || (m % 2 == 0 && val == mid) {
-            -(val as f64) + m as f64
+            (val as f64) - (m as f64)
         } else {
             val as f64
         }
