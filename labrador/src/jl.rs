@@ -165,7 +165,7 @@ impl JLMatrix {
     /// `rows` ring elements (256 by default).
     pub fn project<R>(&self, w: &[R]) -> Vec<R>
     where
-        R: IntegerRing<Uint = u64>,
+        R: IntegerRing<Canonical = u64>,
     {
         self.project_multi(&[w])
     }
@@ -176,7 +176,7 @@ impl JLMatrix {
     /// Avoids allocation when the caller already has a buffer.
     pub fn project_into<R>(&self, w: &[R], out: &mut [R])
     where
-        R: IntegerRing<Uint = u64>,
+        R: IntegerRing<Canonical = u64>,
     {
         self.project_multi_into(&[w], out);
     }
@@ -192,7 +192,7 @@ impl JLMatrix {
     /// `key = seed`, `nonce = part_idx(LE u32) || 0`, columns are keystream offsets.
     pub fn project_multi<R>(&self, parts: &[&[R]]) -> Vec<R>
     where
-        R: IntegerRing<Uint = u64>,
+        R: IntegerRing<Canonical = u64>,
     {
         let mut p = vec![R::zero(); self.rows];
         self.project_multi_into(parts, &mut p);
@@ -205,7 +205,7 @@ impl JLMatrix {
     /// into a `[u8; 64]` stack buffer. Columns processed in order — no seeking, no heap alloc.
     fn project_multi_into<R>(&self, parts: &[&[R]], out: &mut [R])
     where
-        R: IntegerRing<Uint = u64>,
+        R: IntegerRing<Canonical = u64>,
     {
         for (i, part) in parts.iter().enumerate() {
             assert_eq!(
@@ -271,7 +271,7 @@ impl JLMatrix {
         d: usize,
     ) -> (Vec<R>, Vec<i8>)
     where
-        R: IntegerRing<Uint = u64>,
+        R: IntegerRing<Canonical = u64>,
     {
         assert!(d > 0, "ring degree d must be > 0 (got {})", d);
         assert!(
@@ -394,7 +394,7 @@ impl JLMatrix {
         flat_len: usize,
     ) -> (Vec<R>, Vec<i8>)
     where
-        R: IntegerRing<Uint = u64>,
+        R: IntegerRing<Canonical = u64>,
     {
         let mut p = vec![R::zero(); self.rows];
         let mut flat = vec![0i8; flat_len];
@@ -516,7 +516,7 @@ impl JLMatrix {
 /// Uses u128 accumulation (exact before f64 conversion) with overflow guards.
 /// For q > 2^32 the running sum may overflow — in that case f64::INFINITY is
 /// returned, causing conservative (always-reject) behavior.
-pub fn l2_norm<R: IntegerRing<Uint = u64>>(v: &[R]) -> f64 {
+pub fn l2_norm<R: IntegerRing<Canonical = u64>>(v: &[R]) -> f64 {
     crate::main_protocol::squared_l2_norm(v)
         .map(grid_std::sqrt)
         .unwrap_or(f64::INFINITY)
@@ -530,7 +530,11 @@ pub fn l2_norm<R: IntegerRing<Uint = u64>>(v: &[R]) -> f64 {
 ///
 /// Uses squared-norm comparison to avoid `sqrt` on the norm side:
 /// `||p||² ≤ (verify_factor · β)²`.
-pub fn verify_norm<R: IntegerRing<Uint = u64>>(profile: &JLProfile, p: &[R], beta: f64) -> bool {
+pub fn verify_norm<R: IntegerRing<Canonical = u64>>(
+    profile: &JLProfile,
+    p: &[R],
+    beta: f64,
+) -> bool {
     if !profile.validate() || !beta.is_finite() || beta <= 0.0 {
         return false;
     }

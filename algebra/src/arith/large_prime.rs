@@ -4,7 +4,7 @@ use core::marker::PhantomData;
 use core::ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
 use super::bigint::BigUint;
-use super::large_modulus::{LargeCanonicalRing, LargePrimeProfile};
+use super::large_modulus::LargePrimeProfile;
 use super::large_prime_profiles::{
     Bls12_381FqProfile, Bls12_381FrProfile, Bn254FqProfile, Bn254FrProfile,
 };
@@ -664,19 +664,34 @@ impl<P, const LIMBS: usize> IntegerRing for LargePrimeField<P, LIMBS>
 where
     P: LargePrimeProfile<LIMBS>,
 {
-    type Uint = BigUint<LIMBS>;
+    type Canonical = BigUint<LIMBS>;
 
-    fn modulus() -> Self::Uint {
+    fn modulus_canonical() -> Self::Canonical {
         Self::modulus_biguint()
     }
 
-    fn from_u64(val: u64) -> Self {
-        Self::from_small_u64(val)
+    fn from_small_u64(value: u64) -> Self {
+        let mut canonical = [0u64; LIMBS];
+        canonical[0] = value;
+        Self::from_canonical(&Self::canonical_biguint(canonical))
     }
 
-    fn to_u64(&self) -> u64 {
-        self.try_to_u64()
-            .expect("large-prime element does not fit in u64")
+    fn from_canonical(value: &Self::Canonical) -> Self {
+        let reduced = Self::reduce_canonical(value);
+        let limbs = Self::montgomery_mul_limbs(&reduced.limbs, &P::MONT_R2);
+        Self::from_raw_montgomery(limbs)
+    }
+
+    fn to_canonical(&self) -> Self::Canonical {
+        Self::canonical_biguint(Self::montgomery_to_canonical_limbs(&self.limbs))
+    }
+
+    fn try_to_u64(&self) -> Option<u64> {
+        self.to_canonical().try_to_u64()
+    }
+
+    fn try_to_u128(&self) -> Option<u128> {
+        self.to_canonical().try_to_u128()
     }
 
     fn lossy_l2_value(&self) -> f64 {
@@ -707,41 +722,6 @@ where
         //                                      = x^{-1} mod p (Montgomery form).
         let inverse_of_raw = Self::invert_canonical(&Self::canonical_biguint(self.limbs));
         Self::from_canonical(&inverse_of_raw) * Self::from_raw_montgomery(P::MONT_R2)
-    }
-}
-
-impl<P, const LIMBS: usize> LargeCanonicalRing for LargePrimeField<P, LIMBS>
-where
-    P: LargePrimeProfile<LIMBS>,
-{
-    type Canonical = BigUint<LIMBS>;
-
-    fn modulus_canonical() -> Self::Canonical {
-        Self::modulus_biguint()
-    }
-
-    fn from_small_u64(value: u64) -> Self {
-        let mut canonical = [0u64; LIMBS];
-        canonical[0] = value;
-        Self::from_canonical(&Self::canonical_biguint(canonical))
-    }
-
-    fn from_canonical(value: &Self::Canonical) -> Self {
-        let reduced = Self::reduce_canonical(value);
-        let limbs = Self::montgomery_mul_limbs(&reduced.limbs, &P::MONT_R2);
-        Self::from_raw_montgomery(limbs)
-    }
-
-    fn to_canonical(&self) -> Self::Canonical {
-        Self::canonical_biguint(Self::montgomery_to_canonical_limbs(&self.limbs))
-    }
-
-    fn try_to_u64(&self) -> Option<u64> {
-        self.to_canonical().try_to_u64()
-    }
-
-    fn try_to_u128(&self) -> Option<u128> {
-        self.to_canonical().try_to_u128()
     }
 }
 
@@ -886,7 +866,6 @@ where
 mod tests {
     use super::Bn254Fr;
     use super::LargePrimeField;
-    use crate::arith::LargeCanonicalRing;
     use crate::arith::bigint::BigUint;
     use crate::arith::large_modulus::LargePrimeProfile;
     use crate::arith::large_prime_profiles::{
@@ -912,7 +891,7 @@ mod tests {
     where
         P: LargePrimeProfile<LIMBS>,
         LargePrimeField<P, LIMBS>: Field
-            + LargeCanonicalRing<Canonical = BigUint<LIMBS>>
+            + IntegerRing<Canonical = BigUint<LIMBS>>
             + CanonicalSerialize
             + CanonicalDeserialize
             + Valid,

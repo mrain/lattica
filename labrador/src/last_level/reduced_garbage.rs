@@ -31,7 +31,7 @@ pub fn compute_h_round<R, const N: usize>(
     mu: usize,
 ) -> (CyclotomicPolyRing<R, N>, CyclotomicPolyRing<R, N>)
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N>,
+    R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N>,
 {
     let pi = super::witness_part_index(round_i, nu, mu);
     let s_pi = &witness.parts[pi];
@@ -75,7 +75,7 @@ pub fn compute_g0<R, const N: usize>(
     mu: usize,
 ) -> CyclotomicPolyRing<R, N>
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N>,
+    R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N>,
 {
     let mut g0 = CyclotomicPolyRing::<R, N>::zero();
 
@@ -107,7 +107,7 @@ pub fn compute_g_pair<R, const N: usize>(
     mu: usize,
 ) -> (CyclotomicPolyRing<R, N>, CyclotomicPolyRing<R, N>)
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N>,
+    R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N>,
 {
     let z_j = z_index_j - 1;
 

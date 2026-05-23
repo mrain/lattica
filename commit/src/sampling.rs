@@ -5,7 +5,8 @@ use alloc::vec::Vec;
 use grid_algebra::arith::large_modulus::{LargePrimeProfile, LargeRnsProfile};
 use grid_algebra::arith::large_prime::LargePrimeField;
 use grid_algebra::arith::large_rns::LargeRns;
-use grid_algebra::arith::prime::{PrimeField, PrimeFieldLimb};
+use grid_algebra::arith::limb::UintLimb;
+use grid_algebra::arith::prime::PrimeField;
 use grid_algebra::arith::ring::Ring;
 use grid_algebra::arith::z2k::Z2K;
 use grid_algebra::lattice::sampling::toy::{CBDSampler, LargeCBDSampler};
@@ -21,7 +22,7 @@ pub trait CommitmentSampleRing:
     fn sample_short<Rng: grid_std::rand::Rng>(rng: &mut Rng, eta: usize) -> Self;
 }
 
-impl<const Q: u64, L: PrimeFieldLimb> CommitmentSampleRing for PrimeField<Q, L> {
+impl<const Q: u64, L: UintLimb> CommitmentSampleRing for PrimeField<Q, L> {
     fn sample_short<Rng: grid_std::rand::Rng>(rng: &mut Rng, eta: usize) -> Self {
         use grid_algebra::lattice::sampling::CoeffSampler;
 

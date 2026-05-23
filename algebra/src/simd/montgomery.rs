@@ -1,10 +1,11 @@
 //! Internal SIMD qualification and dispatch for Montgomery-backed prime fields.
 
+use crate::arith::limb::UintLimb;
 use crate::arith::ntt::{
     NttError, NttPlan, bit_reverse_permute, scalar_ntt_forward_with_plan,
     scalar_ntt_inverse_with_plan,
 };
-use crate::arith::prime::{PrimeField, PrimeFieldLimb};
+use crate::arith::prime::PrimeField;
 use crate::simd::dispatch::{Backend, selected_backend};
 
 const AVX2_ADD_SUB_MAX_Q: u64 = 1u64 << 62;
@@ -13,13 +14,13 @@ mod sealed {
     pub trait Sealed {}
 }
 
-impl<const Q: u64, L: PrimeFieldLimb> sealed::Sealed for PrimeField<Q, L> {}
+impl<const Q: u64, L: UintLimb> sealed::Sealed for PrimeField<Q, L> {}
 
 /// Internal capability boundary for SIMD-qualified Montgomery prime fields.
 #[allow(dead_code)]
-pub(crate) trait MontgomeryPrimeSimd: sealed::Sealed + Sized {
+pub(crate) trait MontgomeryUintSimd: sealed::Sealed + Sized {
     /// The limb type backing this field.
-    type Limb: PrimeFieldLimb;
+    type Limb: UintLimb;
 
     /// Whether AVX2 add/sub is sound for this modulus.
     const AVX2_ADD_SUB_QUALIFIED: bool;
@@ -40,7 +41,7 @@ pub(crate) trait MontgomeryPrimeSimd: sealed::Sealed + Sized {
     fn values_mut(slice: &mut [Self]) -> &mut [Self::Limb];
 }
 
-impl<const Q: u64, L: PrimeFieldLimb> MontgomeryPrimeSimd for PrimeField<Q, L> {
+impl<const Q: u64, L: UintLimb> MontgomeryUintSimd for PrimeField<Q, L> {
     type Limb = L;
 
     // SIMD qualification: all limb sizes are AVX2-qualified.
@@ -52,8 +53,7 @@ impl<const Q: u64, L: PrimeFieldLimb> MontgomeryPrimeSimd for PrimeField<Q, L> {
         (L::BITS == 64 && Q < (1u64 << 63)) || L::BITS == 16 || L::BITS == 8 || L::BITS == 32;
     const AVX2_MONTGOMERY_QUALIFIED: bool =
         L::BITS == 64 || L::BITS == 16 || L::BITS == 8 || L::BITS == 32;
-    const NEON_MONTGOMERY_QUALIFIED: bool =
-        L::BITS == 16 || L::BITS == 8 || L::BITS == 32;
+    const NEON_MONTGOMERY_QUALIFIED: bool = L::BITS == 16 || L::BITS == 8 || L::BITS == 32;
     const AVX2_NTT_QUALIFIED: bool = Self::AVX2_MONTGOMERY_QUALIFIED;
     const NEON_NTT_QUALIFIED: bool = Self::NEON_MONTGOMERY_QUALIFIED;
 
@@ -70,50 +70,50 @@ impl<const Q: u64, L: PrimeFieldLimb> MontgomeryPrimeSimd for PrimeField<Q, L> {
 
 /// SAFETY: Caller must ensure L::BITS == 64 (i.e. L = u64) before calling.
 #[inline(always)]
-unsafe fn as_u64_slice<L: PrimeFieldLimb>(s: &[L]) -> &[u64] {
+unsafe fn as_u64_slice<L: UintLimb>(s: &[L]) -> &[u64] {
     // When L::BITS == 64, the sealed trait guarantees L = u64.
     unsafe { core::slice::from_raw_parts(s.as_ptr().cast::<u64>(), s.len()) }
 }
 
 /// SAFETY: Caller must ensure L::BITS == 64 (i.e. L = u64) before calling.
 #[inline(always)]
-unsafe fn as_u64_slice_mut<L: PrimeFieldLimb>(s: &mut [L]) -> &mut [u64] {
+unsafe fn as_u64_slice_mut<L: UintLimb>(s: &mut [L]) -> &mut [u64] {
     unsafe { core::slice::from_raw_parts_mut(s.as_mut_ptr().cast::<u64>(), s.len()) }
 }
 
 /// SAFETY: Caller must ensure L::BITS == 16 (i.e. L = u16) before calling.
 #[inline(always)]
-unsafe fn as_u16_slice<L: PrimeFieldLimb>(s: &[L]) -> &[u16] {
+unsafe fn as_u16_slice<L: UintLimb>(s: &[L]) -> &[u16] {
     unsafe { core::slice::from_raw_parts(s.as_ptr().cast::<u16>(), s.len()) }
 }
 
 /// SAFETY: Caller must ensure L::BITS == 16 (i.e. L = u16) before calling.
 #[inline(always)]
-unsafe fn as_u16_slice_mut<L: PrimeFieldLimb>(s: &mut [L]) -> &mut [u16] {
+unsafe fn as_u16_slice_mut<L: UintLimb>(s: &mut [L]) -> &mut [u16] {
     unsafe { core::slice::from_raw_parts_mut(s.as_mut_ptr().cast::<u16>(), s.len()) }
 }
 
 /// SAFETY: Caller must ensure L::BITS == 8 (i.e. L = u8) before calling.
 #[inline(always)]
-unsafe fn as_u8_slice<L: PrimeFieldLimb>(s: &[L]) -> &[u8] {
+unsafe fn as_u8_slice<L: UintLimb>(s: &[L]) -> &[u8] {
     unsafe { core::slice::from_raw_parts(s.as_ptr().cast::<u8>(), s.len()) }
 }
 
 /// SAFETY: Caller must ensure L::BITS == 8 (i.e. L = u8) before calling.
 #[inline(always)]
-unsafe fn as_u8_slice_mut<L: PrimeFieldLimb>(s: &mut [L]) -> &mut [u8] {
+unsafe fn as_u8_slice_mut<L: UintLimb>(s: &mut [L]) -> &mut [u8] {
     unsafe { core::slice::from_raw_parts_mut(s.as_mut_ptr().cast::<u8>(), s.len()) }
 }
 
 /// SAFETY: Caller must ensure L::BITS == 32 (i.e. L = u32) before calling.
 #[inline(always)]
-unsafe fn as_u32_slice<L: PrimeFieldLimb>(s: &[L]) -> &[u32] {
+unsafe fn as_u32_slice<L: UintLimb>(s: &[L]) -> &[u32] {
     unsafe { core::slice::from_raw_parts(s.as_ptr().cast::<u32>(), s.len()) }
 }
 
 /// SAFETY: Caller must ensure L::BITS == 32 (i.e. L = u32) before calling.
 #[inline(always)]
-unsafe fn as_u32_slice_mut<L: PrimeFieldLimb>(s: &mut [L]) -> &mut [u32] {
+unsafe fn as_u32_slice_mut<L: UintLimb>(s: &mut [L]) -> &mut [u32] {
     unsafe { core::slice::from_raw_parts_mut(s.as_mut_ptr().cast::<u32>(), s.len()) }
 }
 
@@ -122,7 +122,7 @@ unsafe fn as_u32_slice_mut<L: PrimeFieldLimb>(s: &mut [L]) -> &mut [u32] {
 // ---------------------------------------------------------------------------
 
 #[inline]
-pub(crate) fn add_assign<const Q: u64, L: PrimeFieldLimb>(
+pub(crate) fn add_assign<const Q: u64, L: UintLimb>(
     dst: &mut [PrimeField<Q, L>],
     src: &[PrimeField<Q, L>],
 ) {
@@ -132,12 +132,12 @@ pub(crate) fn add_assign<const Q: u64, L: PrimeFieldLimb>(
     #[cfg(target_arch = "x86_64")]
     if matches!(backend, Backend::Avx2)
         && L::BITS == 16
-        && <PrimeField<Q, L> as MontgomeryPrimeSimd>::AVX2_ADD_SUB_QUALIFIED
+        && <PrimeField<Q, L> as MontgomeryUintSimd>::AVX2_ADD_SUB_QUALIFIED
     {
         unsafe {
             crate::simd::avx2::u16_arith::add_assign_prime_u16(
-                as_u16_slice_mut(<PrimeField<Q, L> as MontgomeryPrimeSimd>::values_mut(dst)),
-                as_u16_slice(<PrimeField<Q, L> as MontgomeryPrimeSimd>::values(src)),
+                as_u16_slice_mut(<PrimeField<Q, L> as MontgomeryUintSimd>::values_mut(dst)),
+                as_u16_slice(<PrimeField<Q, L> as MontgomeryUintSimd>::values(src)),
                 Q,
             );
         }
@@ -147,12 +147,12 @@ pub(crate) fn add_assign<const Q: u64, L: PrimeFieldLimb>(
     #[cfg(target_arch = "x86_64")]
     if matches!(backend, Backend::Avx2)
         && L::BITS == 8
-        && <PrimeField<Q, L> as MontgomeryPrimeSimd>::AVX2_ADD_SUB_QUALIFIED
+        && <PrimeField<Q, L> as MontgomeryUintSimd>::AVX2_ADD_SUB_QUALIFIED
     {
         unsafe {
             crate::simd::avx2::u8_arith::add_assign_prime_u8(
-                as_u8_slice_mut(<PrimeField<Q, L> as MontgomeryPrimeSimd>::values_mut(dst)),
-                as_u8_slice(<PrimeField<Q, L> as MontgomeryPrimeSimd>::values(src)),
+                as_u8_slice_mut(<PrimeField<Q, L> as MontgomeryUintSimd>::values_mut(dst)),
+                as_u8_slice(<PrimeField<Q, L> as MontgomeryUintSimd>::values(src)),
                 Q,
             );
         }
@@ -162,12 +162,12 @@ pub(crate) fn add_assign<const Q: u64, L: PrimeFieldLimb>(
     #[cfg(target_arch = "x86_64")]
     if matches!(backend, Backend::Avx2)
         && L::BITS == 32
-        && <PrimeField<Q, L> as MontgomeryPrimeSimd>::AVX2_ADD_SUB_QUALIFIED
+        && <PrimeField<Q, L> as MontgomeryUintSimd>::AVX2_ADD_SUB_QUALIFIED
     {
         unsafe {
             crate::simd::avx2::u32_arith::add_assign_prime_u32(
-                as_u32_slice_mut(<PrimeField<Q, L> as MontgomeryPrimeSimd>::values_mut(dst)),
-                as_u32_slice(<PrimeField<Q, L> as MontgomeryPrimeSimd>::values(src)),
+                as_u32_slice_mut(<PrimeField<Q, L> as MontgomeryUintSimd>::values_mut(dst)),
+                as_u32_slice(<PrimeField<Q, L> as MontgomeryUintSimd>::values(src)),
                 Q,
             );
         }
@@ -177,12 +177,12 @@ pub(crate) fn add_assign<const Q: u64, L: PrimeFieldLimb>(
     #[cfg(target_arch = "x86_64")]
     if matches!(backend, Backend::Avx2)
         && L::BITS == 64
-        && <PrimeField<Q, L> as MontgomeryPrimeSimd>::AVX2_ADD_SUB_QUALIFIED
+        && <PrimeField<Q, L> as MontgomeryUintSimd>::AVX2_ADD_SUB_QUALIFIED
     {
         unsafe {
             crate::simd::avx2::u64_arith::add_assign_prime_u64(
-                as_u64_slice_mut(<PrimeField<Q, L> as MontgomeryPrimeSimd>::values_mut(dst)),
-                as_u64_slice(<PrimeField<Q, L> as MontgomeryPrimeSimd>::values(src)),
+                as_u64_slice_mut(<PrimeField<Q, L> as MontgomeryUintSimd>::values_mut(dst)),
+                as_u64_slice(<PrimeField<Q, L> as MontgomeryUintSimd>::values(src)),
                 Q,
             );
         }
@@ -192,12 +192,12 @@ pub(crate) fn add_assign<const Q: u64, L: PrimeFieldLimb>(
     #[cfg(target_arch = "aarch64")]
     if matches!(backend, Backend::Neon)
         && L::BITS == 16
-        && <PrimeField<Q, L> as MontgomeryPrimeSimd>::NEON_ADD_SUB_QUALIFIED
+        && <PrimeField<Q, L> as MontgomeryUintSimd>::NEON_ADD_SUB_QUALIFIED
     {
         unsafe {
             crate::simd::aarch64::u16_arith::add_assign_prime_u16(
-                as_u16_slice_mut(<PrimeField<Q, L> as MontgomeryPrimeSimd>::values_mut(dst)),
-                as_u16_slice(<PrimeField<Q, L> as MontgomeryPrimeSimd>::values(src)),
+                as_u16_slice_mut(<PrimeField<Q, L> as MontgomeryUintSimd>::values_mut(dst)),
+                as_u16_slice(<PrimeField<Q, L> as MontgomeryUintSimd>::values(src)),
                 Q,
             );
         }
@@ -207,12 +207,12 @@ pub(crate) fn add_assign<const Q: u64, L: PrimeFieldLimb>(
     #[cfg(target_arch = "aarch64")]
     if matches!(backend, Backend::Neon)
         && L::BITS == 8
-        && <PrimeField<Q, L> as MontgomeryPrimeSimd>::NEON_ADD_SUB_QUALIFIED
+        && <PrimeField<Q, L> as MontgomeryUintSimd>::NEON_ADD_SUB_QUALIFIED
     {
         unsafe {
             crate::simd::aarch64::u8_arith::add_assign_prime_u8(
-                as_u8_slice_mut(<PrimeField<Q, L> as MontgomeryPrimeSimd>::values_mut(dst)),
-                as_u8_slice(<PrimeField<Q, L> as MontgomeryPrimeSimd>::values(src)),
+                as_u8_slice_mut(<PrimeField<Q, L> as MontgomeryUintSimd>::values_mut(dst)),
+                as_u8_slice(<PrimeField<Q, L> as MontgomeryUintSimd>::values(src)),
                 Q,
             );
         }
@@ -222,12 +222,12 @@ pub(crate) fn add_assign<const Q: u64, L: PrimeFieldLimb>(
     #[cfg(target_arch = "aarch64")]
     if matches!(backend, Backend::Neon)
         && L::BITS == 32
-        && <PrimeField<Q, L> as MontgomeryPrimeSimd>::NEON_ADD_SUB_QUALIFIED
+        && <PrimeField<Q, L> as MontgomeryUintSimd>::NEON_ADD_SUB_QUALIFIED
     {
         unsafe {
             crate::simd::aarch64::u32_arith::add_assign_prime_u32(
-                as_u32_slice_mut(<PrimeField<Q, L> as MontgomeryPrimeSimd>::values_mut(dst)),
-                as_u32_slice(<PrimeField<Q, L> as MontgomeryPrimeSimd>::values(src)),
+                as_u32_slice_mut(<PrimeField<Q, L> as MontgomeryUintSimd>::values_mut(dst)),
+                as_u32_slice(<PrimeField<Q, L> as MontgomeryUintSimd>::values(src)),
                 Q,
             );
         }
@@ -236,12 +236,12 @@ pub(crate) fn add_assign<const Q: u64, L: PrimeFieldLimb>(
 
     #[cfg(target_arch = "aarch64")]
     if matches!(backend, Backend::Neon)
-        && <PrimeField<Q, L> as MontgomeryPrimeSimd>::NEON_ADD_SUB_QUALIFIED
+        && <PrimeField<Q, L> as MontgomeryUintSimd>::NEON_ADD_SUB_QUALIFIED
     {
         unsafe {
             crate::simd::aarch64::add_assign_prime_u64(
-                as_u64_slice_mut(<PrimeField<Q, L> as MontgomeryPrimeSimd>::values_mut(dst)),
-                as_u64_slice(<PrimeField<Q, L> as MontgomeryPrimeSimd>::values(src)),
+                as_u64_slice_mut(<PrimeField<Q, L> as MontgomeryUintSimd>::values_mut(dst)),
+                as_u64_slice(<PrimeField<Q, L> as MontgomeryUintSimd>::values(src)),
                 Q,
             );
         }
@@ -254,7 +254,7 @@ pub(crate) fn add_assign<const Q: u64, L: PrimeFieldLimb>(
 }
 
 #[inline]
-pub(crate) fn sub_assign<const Q: u64, L: PrimeFieldLimb>(
+pub(crate) fn sub_assign<const Q: u64, L: UintLimb>(
     dst: &mut [PrimeField<Q, L>],
     src: &[PrimeField<Q, L>],
 ) {
@@ -264,12 +264,12 @@ pub(crate) fn sub_assign<const Q: u64, L: PrimeFieldLimb>(
     #[cfg(target_arch = "x86_64")]
     if matches!(backend, Backend::Avx2)
         && L::BITS == 16
-        && <PrimeField<Q, L> as MontgomeryPrimeSimd>::AVX2_ADD_SUB_QUALIFIED
+        && <PrimeField<Q, L> as MontgomeryUintSimd>::AVX2_ADD_SUB_QUALIFIED
     {
         unsafe {
             crate::simd::avx2::u16_arith::sub_assign_prime_u16(
-                as_u16_slice_mut(<PrimeField<Q, L> as MontgomeryPrimeSimd>::values_mut(dst)),
-                as_u16_slice(<PrimeField<Q, L> as MontgomeryPrimeSimd>::values(src)),
+                as_u16_slice_mut(<PrimeField<Q, L> as MontgomeryUintSimd>::values_mut(dst)),
+                as_u16_slice(<PrimeField<Q, L> as MontgomeryUintSimd>::values(src)),
                 Q,
             );
         }
@@ -279,12 +279,12 @@ pub(crate) fn sub_assign<const Q: u64, L: PrimeFieldLimb>(
     #[cfg(target_arch = "x86_64")]
     if matches!(backend, Backend::Avx2)
         && L::BITS == 8
-        && <PrimeField<Q, L> as MontgomeryPrimeSimd>::AVX2_ADD_SUB_QUALIFIED
+        && <PrimeField<Q, L> as MontgomeryUintSimd>::AVX2_ADD_SUB_QUALIFIED
     {
         unsafe {
             crate::simd::avx2::u8_arith::sub_assign_prime_u8(
-                as_u8_slice_mut(<PrimeField<Q, L> as MontgomeryPrimeSimd>::values_mut(dst)),
-                as_u8_slice(<PrimeField<Q, L> as MontgomeryPrimeSimd>::values(src)),
+                as_u8_slice_mut(<PrimeField<Q, L> as MontgomeryUintSimd>::values_mut(dst)),
+                as_u8_slice(<PrimeField<Q, L> as MontgomeryUintSimd>::values(src)),
                 Q,
             );
         }
@@ -294,12 +294,12 @@ pub(crate) fn sub_assign<const Q: u64, L: PrimeFieldLimb>(
     #[cfg(target_arch = "x86_64")]
     if matches!(backend, Backend::Avx2)
         && L::BITS == 32
-        && <PrimeField<Q, L> as MontgomeryPrimeSimd>::AVX2_ADD_SUB_QUALIFIED
+        && <PrimeField<Q, L> as MontgomeryUintSimd>::AVX2_ADD_SUB_QUALIFIED
     {
         unsafe {
             crate::simd::avx2::u32_arith::sub_assign_prime_u32(
-                as_u32_slice_mut(<PrimeField<Q, L> as MontgomeryPrimeSimd>::values_mut(dst)),
-                as_u32_slice(<PrimeField<Q, L> as MontgomeryPrimeSimd>::values(src)),
+                as_u32_slice_mut(<PrimeField<Q, L> as MontgomeryUintSimd>::values_mut(dst)),
+                as_u32_slice(<PrimeField<Q, L> as MontgomeryUintSimd>::values(src)),
                 Q,
             );
         }
@@ -309,12 +309,12 @@ pub(crate) fn sub_assign<const Q: u64, L: PrimeFieldLimb>(
     #[cfg(target_arch = "x86_64")]
     if matches!(backend, Backend::Avx2)
         && L::BITS == 64
-        && <PrimeField<Q, L> as MontgomeryPrimeSimd>::AVX2_ADD_SUB_QUALIFIED
+        && <PrimeField<Q, L> as MontgomeryUintSimd>::AVX2_ADD_SUB_QUALIFIED
     {
         unsafe {
             crate::simd::avx2::u64_arith::sub_assign_prime_u64(
-                as_u64_slice_mut(<PrimeField<Q, L> as MontgomeryPrimeSimd>::values_mut(dst)),
-                as_u64_slice(<PrimeField<Q, L> as MontgomeryPrimeSimd>::values(src)),
+                as_u64_slice_mut(<PrimeField<Q, L> as MontgomeryUintSimd>::values_mut(dst)),
+                as_u64_slice(<PrimeField<Q, L> as MontgomeryUintSimd>::values(src)),
                 Q,
             );
         }
@@ -324,12 +324,12 @@ pub(crate) fn sub_assign<const Q: u64, L: PrimeFieldLimb>(
     #[cfg(target_arch = "aarch64")]
     if matches!(backend, Backend::Neon)
         && L::BITS == 16
-        && <PrimeField<Q, L> as MontgomeryPrimeSimd>::NEON_ADD_SUB_QUALIFIED
+        && <PrimeField<Q, L> as MontgomeryUintSimd>::NEON_ADD_SUB_QUALIFIED
     {
         unsafe {
             crate::simd::aarch64::u16_arith::sub_assign_prime_u16(
-                as_u16_slice_mut(<PrimeField<Q, L> as MontgomeryPrimeSimd>::values_mut(dst)),
-                as_u16_slice(<PrimeField<Q, L> as MontgomeryPrimeSimd>::values(src)),
+                as_u16_slice_mut(<PrimeField<Q, L> as MontgomeryUintSimd>::values_mut(dst)),
+                as_u16_slice(<PrimeField<Q, L> as MontgomeryUintSimd>::values(src)),
                 Q,
             );
         }
@@ -339,12 +339,12 @@ pub(crate) fn sub_assign<const Q: u64, L: PrimeFieldLimb>(
     #[cfg(target_arch = "aarch64")]
     if matches!(backend, Backend::Neon)
         && L::BITS == 8
-        && <PrimeField<Q, L> as MontgomeryPrimeSimd>::NEON_ADD_SUB_QUALIFIED
+        && <PrimeField<Q, L> as MontgomeryUintSimd>::NEON_ADD_SUB_QUALIFIED
     {
         unsafe {
             crate::simd::aarch64::u8_arith::sub_assign_prime_u8(
-                as_u8_slice_mut(<PrimeField<Q, L> as MontgomeryPrimeSimd>::values_mut(dst)),
-                as_u8_slice(<PrimeField<Q, L> as MontgomeryPrimeSimd>::values(src)),
+                as_u8_slice_mut(<PrimeField<Q, L> as MontgomeryUintSimd>::values_mut(dst)),
+                as_u8_slice(<PrimeField<Q, L> as MontgomeryUintSimd>::values(src)),
                 Q,
             );
         }
@@ -354,12 +354,12 @@ pub(crate) fn sub_assign<const Q: u64, L: PrimeFieldLimb>(
     #[cfg(target_arch = "aarch64")]
     if matches!(backend, Backend::Neon)
         && L::BITS == 32
-        && <PrimeField<Q, L> as MontgomeryPrimeSimd>::NEON_ADD_SUB_QUALIFIED
+        && <PrimeField<Q, L> as MontgomeryUintSimd>::NEON_ADD_SUB_QUALIFIED
     {
         unsafe {
             crate::simd::aarch64::u32_arith::sub_assign_prime_u32(
-                as_u32_slice_mut(<PrimeField<Q, L> as MontgomeryPrimeSimd>::values_mut(dst)),
-                as_u32_slice(<PrimeField<Q, L> as MontgomeryPrimeSimd>::values(src)),
+                as_u32_slice_mut(<PrimeField<Q, L> as MontgomeryUintSimd>::values_mut(dst)),
+                as_u32_slice(<PrimeField<Q, L> as MontgomeryUintSimd>::values(src)),
                 Q,
             );
         }
@@ -368,12 +368,12 @@ pub(crate) fn sub_assign<const Q: u64, L: PrimeFieldLimb>(
 
     #[cfg(target_arch = "aarch64")]
     if matches!(backend, Backend::Neon)
-        && <PrimeField<Q, L> as MontgomeryPrimeSimd>::NEON_ADD_SUB_QUALIFIED
+        && <PrimeField<Q, L> as MontgomeryUintSimd>::NEON_ADD_SUB_QUALIFIED
     {
         unsafe {
             crate::simd::aarch64::sub_assign_prime_u64(
-                as_u64_slice_mut(<PrimeField<Q, L> as MontgomeryPrimeSimd>::values_mut(dst)),
-                as_u64_slice(<PrimeField<Q, L> as MontgomeryPrimeSimd>::values(src)),
+                as_u64_slice_mut(<PrimeField<Q, L> as MontgomeryUintSimd>::values_mut(dst)),
+                as_u64_slice(<PrimeField<Q, L> as MontgomeryUintSimd>::values(src)),
                 Q,
             );
         }
@@ -386,7 +386,7 @@ pub(crate) fn sub_assign<const Q: u64, L: PrimeFieldLimb>(
 }
 
 #[inline]
-pub(crate) fn scalar_mul<const Q: u64, L: PrimeFieldLimb>(
+pub(crate) fn scalar_mul<const Q: u64, L: UintLimb>(
     dst: &mut [PrimeField<Q, L>],
     scalar: &PrimeField<Q, L>,
 ) {
@@ -395,11 +395,11 @@ pub(crate) fn scalar_mul<const Q: u64, L: PrimeFieldLimb>(
     #[cfg(target_arch = "x86_64")]
     if matches!(backend, Backend::Avx2)
         && L::BITS == 16
-        && <PrimeField<Q, L> as MontgomeryPrimeSimd>::AVX2_MONTGOMERY_QUALIFIED
+        && <PrimeField<Q, L> as MontgomeryUintSimd>::AVX2_MONTGOMERY_QUALIFIED
     {
         unsafe {
             crate::simd::avx2::u16_arith::scalar_mul_prime_montgomery_u16::<Q>(
-                as_u16_slice_mut(<PrimeField<Q, L> as MontgomeryPrimeSimd>::values_mut(dst)),
+                as_u16_slice_mut(<PrimeField<Q, L> as MontgomeryUintSimd>::values_mut(dst)),
                 scalar.raw().to_u64(),
             );
         }
@@ -409,11 +409,11 @@ pub(crate) fn scalar_mul<const Q: u64, L: PrimeFieldLimb>(
     #[cfg(target_arch = "x86_64")]
     if matches!(backend, Backend::Avx2)
         && L::BITS == 8
-        && <PrimeField<Q, L> as MontgomeryPrimeSimd>::AVX2_MONTGOMERY_QUALIFIED
+        && <PrimeField<Q, L> as MontgomeryUintSimd>::AVX2_MONTGOMERY_QUALIFIED
     {
         unsafe {
             crate::simd::avx2::u8_arith::scalar_mul_prime_montgomery_u8::<Q>(
-                as_u8_slice_mut(<PrimeField<Q, L> as MontgomeryPrimeSimd>::values_mut(dst)),
+                as_u8_slice_mut(<PrimeField<Q, L> as MontgomeryUintSimd>::values_mut(dst)),
                 scalar.raw().to_u64(),
             );
         }
@@ -423,11 +423,11 @@ pub(crate) fn scalar_mul<const Q: u64, L: PrimeFieldLimb>(
     #[cfg(target_arch = "x86_64")]
     if matches!(backend, Backend::Avx2)
         && L::BITS == 32
-        && <PrimeField<Q, L> as MontgomeryPrimeSimd>::AVX2_MONTGOMERY_QUALIFIED
+        && <PrimeField<Q, L> as MontgomeryUintSimd>::AVX2_MONTGOMERY_QUALIFIED
     {
         unsafe {
             crate::simd::avx2::u32_arith::scalar_mul_prime_montgomery_u32::<Q>(
-                as_u32_slice_mut(<PrimeField<Q, L> as MontgomeryPrimeSimd>::values_mut(dst)),
+                as_u32_slice_mut(<PrimeField<Q, L> as MontgomeryUintSimd>::values_mut(dst)),
                 scalar.raw().to_u64(),
             );
         }
@@ -437,11 +437,11 @@ pub(crate) fn scalar_mul<const Q: u64, L: PrimeFieldLimb>(
     #[cfg(target_arch = "x86_64")]
     if matches!(backend, Backend::Avx2)
         && L::BITS == 64
-        && <PrimeField<Q, L> as MontgomeryPrimeSimd>::AVX2_MONTGOMERY_QUALIFIED
+        && <PrimeField<Q, L> as MontgomeryUintSimd>::AVX2_MONTGOMERY_QUALIFIED
     {
         unsafe {
             crate::simd::avx2::u64_arith::scalar_mul_prime_montgomery_u64::<Q>(
-                as_u64_slice_mut(<PrimeField<Q, L> as MontgomeryPrimeSimd>::values_mut(dst)),
+                as_u64_slice_mut(<PrimeField<Q, L> as MontgomeryUintSimd>::values_mut(dst)),
                 scalar.raw().to_u64(),
             );
         }
@@ -451,11 +451,11 @@ pub(crate) fn scalar_mul<const Q: u64, L: PrimeFieldLimb>(
     #[cfg(target_arch = "aarch64")]
     if matches!(backend, Backend::Neon)
         && L::BITS == 16
-        && <PrimeField<Q, L> as MontgomeryPrimeSimd>::NEON_MONTGOMERY_QUALIFIED
+        && <PrimeField<Q, L> as MontgomeryUintSimd>::NEON_MONTGOMERY_QUALIFIED
     {
         unsafe {
             crate::simd::aarch64::u16_arith::scalar_mul_prime_montgomery_u16::<Q>(
-                as_u16_slice_mut(<PrimeField<Q, L> as MontgomeryPrimeSimd>::values_mut(dst)),
+                as_u16_slice_mut(<PrimeField<Q, L> as MontgomeryUintSimd>::values_mut(dst)),
                 scalar.raw().to_u64(),
             );
         }
@@ -465,11 +465,11 @@ pub(crate) fn scalar_mul<const Q: u64, L: PrimeFieldLimb>(
     #[cfg(target_arch = "aarch64")]
     if matches!(backend, Backend::Neon)
         && L::BITS == 8
-        && <PrimeField<Q, L> as MontgomeryPrimeSimd>::NEON_MONTGOMERY_QUALIFIED
+        && <PrimeField<Q, L> as MontgomeryUintSimd>::NEON_MONTGOMERY_QUALIFIED
     {
         unsafe {
             crate::simd::aarch64::u8_arith::scalar_mul_prime_montgomery_u8::<Q>(
-                as_u8_slice_mut(<PrimeField<Q, L> as MontgomeryPrimeSimd>::values_mut(dst)),
+                as_u8_slice_mut(<PrimeField<Q, L> as MontgomeryUintSimd>::values_mut(dst)),
                 scalar.raw().to_u64(),
             );
         }
@@ -479,11 +479,11 @@ pub(crate) fn scalar_mul<const Q: u64, L: PrimeFieldLimb>(
     #[cfg(target_arch = "aarch64")]
     if matches!(backend, Backend::Neon)
         && L::BITS == 32
-        && <PrimeField<Q, L> as MontgomeryPrimeSimd>::NEON_MONTGOMERY_QUALIFIED
+        && <PrimeField<Q, L> as MontgomeryUintSimd>::NEON_MONTGOMERY_QUALIFIED
     {
         unsafe {
             crate::simd::aarch64::u32_arith::scalar_mul_prime_montgomery_u32::<Q>(
-                as_u32_slice_mut(<PrimeField<Q, L> as MontgomeryPrimeSimd>::values_mut(dst)),
+                as_u32_slice_mut(<PrimeField<Q, L> as MontgomeryUintSimd>::values_mut(dst)),
                 scalar.raw().to_u64(),
             );
         }
@@ -492,11 +492,11 @@ pub(crate) fn scalar_mul<const Q: u64, L: PrimeFieldLimb>(
 
     #[cfg(target_arch = "aarch64")]
     if matches!(backend, Backend::Neon)
-        && <PrimeField<Q, L> as MontgomeryPrimeSimd>::NEON_MONTGOMERY_QUALIFIED
+        && <PrimeField<Q, L> as MontgomeryUintSimd>::NEON_MONTGOMERY_QUALIFIED
     {
         unsafe {
             crate::simd::aarch64::scalar_mul_prime_montgomery_u64::<Q>(
-                as_u64_slice_mut(<PrimeField<Q, L> as MontgomeryPrimeSimd>::values_mut(dst)),
+                as_u64_slice_mut(<PrimeField<Q, L> as MontgomeryUintSimd>::values_mut(dst)),
                 scalar.raw().to_u64(),
             );
         }
@@ -509,7 +509,7 @@ pub(crate) fn scalar_mul<const Q: u64, L: PrimeFieldLimb>(
 }
 
 #[inline]
-pub(crate) fn pointwise_mul_assign<const Q: u64, L: PrimeFieldLimb>(
+pub(crate) fn pointwise_mul_assign<const Q: u64, L: UintLimb>(
     dst: &mut [PrimeField<Q, L>],
     rhs: &[PrimeField<Q, L>],
 ) {
@@ -519,12 +519,12 @@ pub(crate) fn pointwise_mul_assign<const Q: u64, L: PrimeFieldLimb>(
     #[cfg(target_arch = "x86_64")]
     if matches!(backend, Backend::Avx2)
         && L::BITS == 16
-        && <PrimeField<Q, L> as MontgomeryPrimeSimd>::AVX2_MONTGOMERY_QUALIFIED
+        && <PrimeField<Q, L> as MontgomeryUintSimd>::AVX2_MONTGOMERY_QUALIFIED
     {
         unsafe {
             crate::simd::avx2::u16_arith::mul_assign_prime_montgomery_u16::<Q>(
-                as_u16_slice_mut(<PrimeField<Q, L> as MontgomeryPrimeSimd>::values_mut(dst)),
-                as_u16_slice(<PrimeField<Q, L> as MontgomeryPrimeSimd>::values(rhs)),
+                as_u16_slice_mut(<PrimeField<Q, L> as MontgomeryUintSimd>::values_mut(dst)),
+                as_u16_slice(<PrimeField<Q, L> as MontgomeryUintSimd>::values(rhs)),
             );
         }
         return;
@@ -533,12 +533,12 @@ pub(crate) fn pointwise_mul_assign<const Q: u64, L: PrimeFieldLimb>(
     #[cfg(target_arch = "x86_64")]
     if matches!(backend, Backend::Avx2)
         && L::BITS == 8
-        && <PrimeField<Q, L> as MontgomeryPrimeSimd>::AVX2_MONTGOMERY_QUALIFIED
+        && <PrimeField<Q, L> as MontgomeryUintSimd>::AVX2_MONTGOMERY_QUALIFIED
     {
         unsafe {
             crate::simd::avx2::u8_arith::mul_assign_prime_montgomery_u8::<Q>(
-                as_u8_slice_mut(<PrimeField<Q, L> as MontgomeryPrimeSimd>::values_mut(dst)),
-                as_u8_slice(<PrimeField<Q, L> as MontgomeryPrimeSimd>::values(rhs)),
+                as_u8_slice_mut(<PrimeField<Q, L> as MontgomeryUintSimd>::values_mut(dst)),
+                as_u8_slice(<PrimeField<Q, L> as MontgomeryUintSimd>::values(rhs)),
             );
         }
         return;
@@ -547,12 +547,12 @@ pub(crate) fn pointwise_mul_assign<const Q: u64, L: PrimeFieldLimb>(
     #[cfg(target_arch = "x86_64")]
     if matches!(backend, Backend::Avx2)
         && L::BITS == 32
-        && <PrimeField<Q, L> as MontgomeryPrimeSimd>::AVX2_MONTGOMERY_QUALIFIED
+        && <PrimeField<Q, L> as MontgomeryUintSimd>::AVX2_MONTGOMERY_QUALIFIED
     {
         unsafe {
             crate::simd::avx2::u32_arith::mul_assign_prime_montgomery_u32::<Q>(
-                as_u32_slice_mut(<PrimeField<Q, L> as MontgomeryPrimeSimd>::values_mut(dst)),
-                as_u32_slice(<PrimeField<Q, L> as MontgomeryPrimeSimd>::values(rhs)),
+                as_u32_slice_mut(<PrimeField<Q, L> as MontgomeryUintSimd>::values_mut(dst)),
+                as_u32_slice(<PrimeField<Q, L> as MontgomeryUintSimd>::values(rhs)),
             );
         }
         return;
@@ -561,12 +561,12 @@ pub(crate) fn pointwise_mul_assign<const Q: u64, L: PrimeFieldLimb>(
     #[cfg(target_arch = "x86_64")]
     if matches!(backend, Backend::Avx2)
         && L::BITS == 64
-        && <PrimeField<Q, L> as MontgomeryPrimeSimd>::AVX2_MONTGOMERY_QUALIFIED
+        && <PrimeField<Q, L> as MontgomeryUintSimd>::AVX2_MONTGOMERY_QUALIFIED
     {
         unsafe {
             crate::simd::avx2::u64_arith::mul_assign_prime_montgomery_u64::<Q>(
-                as_u64_slice_mut(<PrimeField<Q, L> as MontgomeryPrimeSimd>::values_mut(dst)),
-                as_u64_slice(<PrimeField<Q, L> as MontgomeryPrimeSimd>::values(rhs)),
+                as_u64_slice_mut(<PrimeField<Q, L> as MontgomeryUintSimd>::values_mut(dst)),
+                as_u64_slice(<PrimeField<Q, L> as MontgomeryUintSimd>::values(rhs)),
             );
         }
         return;
@@ -575,12 +575,12 @@ pub(crate) fn pointwise_mul_assign<const Q: u64, L: PrimeFieldLimb>(
     #[cfg(target_arch = "aarch64")]
     if matches!(backend, Backend::Neon)
         && L::BITS == 16
-        && <PrimeField<Q, L> as MontgomeryPrimeSimd>::NEON_MONTGOMERY_QUALIFIED
+        && <PrimeField<Q, L> as MontgomeryUintSimd>::NEON_MONTGOMERY_QUALIFIED
     {
         unsafe {
             crate::simd::aarch64::u16_arith::mul_assign_prime_montgomery_u16::<Q>(
-                as_u16_slice_mut(<PrimeField<Q, L> as MontgomeryPrimeSimd>::values_mut(dst)),
-                as_u16_slice(<PrimeField<Q, L> as MontgomeryPrimeSimd>::values(rhs)),
+                as_u16_slice_mut(<PrimeField<Q, L> as MontgomeryUintSimd>::values_mut(dst)),
+                as_u16_slice(<PrimeField<Q, L> as MontgomeryUintSimd>::values(rhs)),
             );
         }
         return;
@@ -589,12 +589,12 @@ pub(crate) fn pointwise_mul_assign<const Q: u64, L: PrimeFieldLimb>(
     #[cfg(target_arch = "aarch64")]
     if matches!(backend, Backend::Neon)
         && L::BITS == 8
-        && <PrimeField<Q, L> as MontgomeryPrimeSimd>::NEON_MONTGOMERY_QUALIFIED
+        && <PrimeField<Q, L> as MontgomeryUintSimd>::NEON_MONTGOMERY_QUALIFIED
     {
         unsafe {
             crate::simd::aarch64::u8_arith::mul_assign_prime_montgomery_u8::<Q>(
-                as_u8_slice_mut(<PrimeField<Q, L> as MontgomeryPrimeSimd>::values_mut(dst)),
-                as_u8_slice(<PrimeField<Q, L> as MontgomeryPrimeSimd>::values(rhs)),
+                as_u8_slice_mut(<PrimeField<Q, L> as MontgomeryUintSimd>::values_mut(dst)),
+                as_u8_slice(<PrimeField<Q, L> as MontgomeryUintSimd>::values(rhs)),
             );
         }
         return;
@@ -603,12 +603,12 @@ pub(crate) fn pointwise_mul_assign<const Q: u64, L: PrimeFieldLimb>(
     #[cfg(target_arch = "aarch64")]
     if matches!(backend, Backend::Neon)
         && L::BITS == 32
-        && <PrimeField<Q, L> as MontgomeryPrimeSimd>::NEON_MONTGOMERY_QUALIFIED
+        && <PrimeField<Q, L> as MontgomeryUintSimd>::NEON_MONTGOMERY_QUALIFIED
     {
         unsafe {
             crate::simd::aarch64::u32_arith::mul_assign_prime_montgomery_u32::<Q>(
-                as_u32_slice_mut(<PrimeField<Q, L> as MontgomeryPrimeSimd>::values_mut(dst)),
-                as_u32_slice(<PrimeField<Q, L> as MontgomeryPrimeSimd>::values(rhs)),
+                as_u32_slice_mut(<PrimeField<Q, L> as MontgomeryUintSimd>::values_mut(dst)),
+                as_u32_slice(<PrimeField<Q, L> as MontgomeryUintSimd>::values(rhs)),
             );
         }
         return;
@@ -616,12 +616,12 @@ pub(crate) fn pointwise_mul_assign<const Q: u64, L: PrimeFieldLimb>(
 
     #[cfg(target_arch = "aarch64")]
     if matches!(backend, Backend::Neon)
-        && <PrimeField<Q, L> as MontgomeryPrimeSimd>::NEON_MONTGOMERY_QUALIFIED
+        && <PrimeField<Q, L> as MontgomeryUintSimd>::NEON_MONTGOMERY_QUALIFIED
     {
         unsafe {
             crate::simd::aarch64::mul_assign_prime_montgomery_u64::<Q>(
-                as_u64_slice_mut(<PrimeField<Q, L> as MontgomeryPrimeSimd>::values_mut(dst)),
-                as_u64_slice(<PrimeField<Q, L> as MontgomeryPrimeSimd>::values(rhs)),
+                as_u64_slice_mut(<PrimeField<Q, L> as MontgomeryUintSimd>::values_mut(dst)),
+                as_u64_slice(<PrimeField<Q, L> as MontgomeryUintSimd>::values(rhs)),
             );
         }
         return;
@@ -633,7 +633,7 @@ pub(crate) fn pointwise_mul_assign<const Q: u64, L: PrimeFieldLimb>(
 }
 
 #[inline]
-pub(crate) fn ntt_forward_with_plan<const Q: u64, L: PrimeFieldLimb>(
+pub(crate) fn ntt_forward_with_plan<const Q: u64, L: UintLimb>(
     coeffs: &mut [PrimeField<Q, L>],
     plan: &NttPlan<PrimeField<Q, L>>,
 ) -> Result<(), NttError> {
@@ -641,14 +641,14 @@ pub(crate) fn ntt_forward_with_plan<const Q: u64, L: PrimeFieldLimb>(
 
     #[cfg(target_arch = "x86_64")]
     if matches!(backend, Backend::Avx2)
-        && <PrimeField<Q, L> as MontgomeryPrimeSimd>::AVX2_NTT_QUALIFIED
+        && <PrimeField<Q, L> as MontgomeryUintSimd>::AVX2_NTT_QUALIFIED
     {
         return avx2_ntt_forward_with_plan(coeffs, plan);
     }
 
     #[cfg(target_arch = "aarch64")]
     if matches!(backend, Backend::Neon)
-        && <PrimeField<Q, L> as MontgomeryPrimeSimd>::NEON_NTT_QUALIFIED
+        && <PrimeField<Q, L> as MontgomeryUintSimd>::NEON_NTT_QUALIFIED
     {
         return neon_ntt_forward_with_plan(coeffs, plan);
     }
@@ -657,7 +657,7 @@ pub(crate) fn ntt_forward_with_plan<const Q: u64, L: PrimeFieldLimb>(
 }
 
 #[inline]
-pub(crate) fn ntt_inverse_with_plan<const Q: u64, L: PrimeFieldLimb>(
+pub(crate) fn ntt_inverse_with_plan<const Q: u64, L: UintLimb>(
     evals: &mut [PrimeField<Q, L>],
     plan: &NttPlan<PrimeField<Q, L>>,
 ) -> Result<(), NttError> {
@@ -665,14 +665,14 @@ pub(crate) fn ntt_inverse_with_plan<const Q: u64, L: PrimeFieldLimb>(
 
     #[cfg(target_arch = "x86_64")]
     if matches!(backend, Backend::Avx2)
-        && <PrimeField<Q, L> as MontgomeryPrimeSimd>::AVX2_NTT_QUALIFIED
+        && <PrimeField<Q, L> as MontgomeryUintSimd>::AVX2_NTT_QUALIFIED
     {
         return avx2_ntt_inverse_with_plan(evals, plan);
     }
 
     #[cfg(target_arch = "aarch64")]
     if matches!(backend, Backend::Neon)
-        && <PrimeField<Q, L> as MontgomeryPrimeSimd>::NEON_NTT_QUALIFIED
+        && <PrimeField<Q, L> as MontgomeryUintSimd>::NEON_NTT_QUALIFIED
     {
         return neon_ntt_inverse_with_plan(evals, plan);
     }
@@ -685,7 +685,7 @@ pub(crate) fn ntt_inverse_with_plan<const Q: u64, L: PrimeFieldLimb>(
 // ---------------------------------------------------------------------------
 
 #[cfg(target_arch = "x86_64")]
-fn avx2_ntt_forward_with_plan<const Q: u64, L: PrimeFieldLimb>(
+fn avx2_ntt_forward_with_plan<const Q: u64, L: UintLimb>(
     coeffs: &mut [PrimeField<Q, L>],
     plan: &NttPlan<PrimeField<Q, L>>,
 ) -> Result<(), NttError> {
@@ -694,11 +694,11 @@ fn avx2_ntt_forward_with_plan<const Q: u64, L: PrimeFieldLimb>(
 
     bit_reverse_permute(coeffs);
 
-    let values = <PrimeField<Q, L> as MontgomeryPrimeSimd>::values_mut(coeffs);
+    let values = <PrimeField<Q, L> as MontgomeryUintSimd>::values_mut(coeffs);
     let mut len = 2usize;
     for twiddles in plan.forward_stage_twiddles() {
         let half = len / 2;
-        let twiddles = <PrimeField<Q, L> as MontgomeryPrimeSimd>::values(twiddles);
+        let twiddles = <PrimeField<Q, L> as MontgomeryUintSimd>::values(twiddles);
         for start in (0..n).step_by(len) {
             let (even, odd) = values[start..start + len].split_at_mut(half);
             if L::BITS == 16 {
@@ -742,7 +742,7 @@ fn avx2_ntt_forward_with_plan<const Q: u64, L: PrimeFieldLimb>(
 }
 
 #[cfg(target_arch = "aarch64")]
-fn neon_ntt_forward_with_plan<const Q: u64, L: PrimeFieldLimb>(
+fn neon_ntt_forward_with_plan<const Q: u64, L: UintLimb>(
     coeffs: &mut [PrimeField<Q, L>],
     plan: &NttPlan<PrimeField<Q, L>>,
 ) -> Result<(), NttError> {
@@ -751,11 +751,11 @@ fn neon_ntt_forward_with_plan<const Q: u64, L: PrimeFieldLimb>(
 
     bit_reverse_permute(coeffs);
 
-    let values = <PrimeField<Q, L> as MontgomeryPrimeSimd>::values_mut(coeffs);
+    let values = <PrimeField<Q, L> as MontgomeryUintSimd>::values_mut(coeffs);
     let mut len = 2usize;
     for twiddles in plan.forward_stage_twiddles() {
         let half = len / 2;
-        let twiddles = <PrimeField<Q, L> as MontgomeryPrimeSimd>::values(twiddles);
+        let twiddles = <PrimeField<Q, L> as MontgomeryUintSimd>::values(twiddles);
         for start in (0..n).step_by(len) {
             let (even, odd) = values[start..start + len].split_at_mut(half);
             if L::BITS == 16 {
@@ -799,20 +799,20 @@ fn neon_ntt_forward_with_plan<const Q: u64, L: PrimeFieldLimb>(
 }
 
 #[cfg(target_arch = "x86_64")]
-fn avx2_ntt_inverse_with_plan<const Q: u64, L: PrimeFieldLimb>(
+fn avx2_ntt_inverse_with_plan<const Q: u64, L: UintLimb>(
     evals: &mut [PrimeField<Q, L>],
     plan: &NttPlan<PrimeField<Q, L>>,
 ) -> Result<(), NttError> {
     let n = evals.len();
     plan.validate_len(n)?;
 
-    let values = <PrimeField<Q, L> as MontgomeryPrimeSimd>::values_mut(evals);
+    let values = <PrimeField<Q, L> as MontgomeryUintSimd>::values_mut(evals);
     let inverse_scale: u64 = plan.inverse_scale().raw().to_u64();
     let mut len = n;
     for twiddles in plan.inverse_stage_twiddles() {
         let half = len / 2;
         let final_stage = len == 2;
-        let twiddles = <PrimeField<Q, L> as MontgomeryPrimeSimd>::values(twiddles);
+        let twiddles = <PrimeField<Q, L> as MontgomeryUintSimd>::values(twiddles);
         for start in (0..n).step_by(len) {
             let (even, odd) = values[start..start + len].split_at_mut(half);
             if L::BITS == 16 {
@@ -890,20 +890,20 @@ fn avx2_ntt_inverse_with_plan<const Q: u64, L: PrimeFieldLimb>(
 }
 
 #[cfg(target_arch = "aarch64")]
-fn neon_ntt_inverse_with_plan<const Q: u64, L: PrimeFieldLimb>(
+fn neon_ntt_inverse_with_plan<const Q: u64, L: UintLimb>(
     evals: &mut [PrimeField<Q, L>],
     plan: &NttPlan<PrimeField<Q, L>>,
 ) -> Result<(), NttError> {
     let n = evals.len();
     plan.validate_len(n)?;
 
-    let values = <PrimeField<Q, L> as MontgomeryPrimeSimd>::values_mut(evals);
+    let values = <PrimeField<Q, L> as MontgomeryUintSimd>::values_mut(evals);
     let inverse_scale: u64 = plan.inverse_scale().raw().to_u64();
     let mut len = n;
     for twiddles in plan.inverse_stage_twiddles() {
         let half = len / 2;
         let final_stage = len == 2;
-        let twiddles = <PrimeField<Q, L> as MontgomeryPrimeSimd>::values(twiddles);
+        let twiddles = <PrimeField<Q, L> as MontgomeryUintSimd>::values(twiddles);
         for start in (0..n).step_by(len) {
             let (even, odd) = values[start..start + len].split_at_mut(half);
             if L::BITS == 16 {

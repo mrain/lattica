@@ -1,10 +1,9 @@
 use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
-use grid_algebra::arith::LargeCanonicalRing;
 use grid_algebra::arith::bigint::BigUint;
 use grid_algebra::arith::large_prime::{Bls12_381Fq, Bn254Fr};
 use grid_algebra::arith::ntt::NTTRing;
 use grid_algebra::arith::prime::PrimeField;
-use grid_algebra::arith::ring::{Field, Ring};
+use grid_algebra::arith::ring::{Field, IntegerRing, Ring};
 use grid_algebra::poly::{ntt_forward, ntt_inverse, poly_mul_ntt};
 use grid_std::UniformRand;
 use grid_std::rand::RngExt;
@@ -130,7 +129,7 @@ fn nonzero_word_prime_values(len: usize) -> Vec<FWordPrime> {
 
 fn nonzero_large_prime_values<F, const N: usize>(len: usize) -> Vec<F>
 where
-    F: Field + LargeCanonicalRing<Canonical = BigUint<N>> + UniformRand,
+    F: Field + IntegerRing<Canonical = BigUint<N>> + UniformRand,
 {
     let mut rng = grid_std::test_rng();
     (0..len)
@@ -143,7 +142,7 @@ where
 
 fn bench_large_prime_profile<F, const N: usize>(c: &mut Criterion, label: &str)
 where
-    F: Field + LargeCanonicalRing<Canonical = BigUint<N>> + UniformRand,
+    F: Field + IntegerRing<Canonical = BigUint<N>> + UniformRand,
 {
     let canonical_inputs = random_biguint_vec::<N>(COEFF_SLICE_LEN);
     let values = nonzero_large_prime_values::<F, N>(COEFF_SLICE_LEN);
@@ -205,13 +204,7 @@ where
 
 fn bench_large_prime_ntt_profile<F, const N: usize>(c: &mut Criterion, label: &str)
 where
-    F: Field
-        + NTTRing
-        + LargeCanonicalRing<Canonical = BigUint<N>>
-        + UniformRand
-        + Send
-        + Sync
-        + 'static,
+    F: Field + NTTRing + IntegerRing<Canonical = BigUint<N>> + UniformRand + Send + Sync + 'static,
 {
     let poly = random_ntt_poly::<F>(NTT_DEGREE);
     let mut evals = poly.clone();

@@ -25,7 +25,7 @@ pub fn decompose_z<R, const N: usize>(
     b: u64,
 ) -> Vec<CyclotomicPolyRing<R, N>>
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N>,
+    R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N>,
 {
     let n = z.len();
     assert!(n > 0, "z must be non-empty");
@@ -95,7 +95,7 @@ pub fn bundle_v<R, const N: usize>(
     h_limbs: &[CyclotomicPolyRing<R, N>],
 ) -> Vec<CyclotomicPolyRing<R, N>>
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N>,
+    R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N>,
 {
     let total = t_limbs.len() + g_limbs.len() + h_limbs.len();
     let mut v = Vec::with_capacity(total);

@@ -50,7 +50,7 @@ macro_rules! bail {
 #[derive(Debug, Clone)]
 pub struct RecursiveTarget<R, const N: usize>
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N> + UniformRand,
+    R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N> + UniformRand,
 {
     /// Family G: K' constraints (all fully vanishing, no F').
     pub statement: LabradorStatement<CyclotomicPolyRing<R, N>>,
@@ -87,7 +87,7 @@ pub fn build_target_relation<R, const N: usize>(
     n_prime: usize,
 ) -> RecursiveTarget<R, N>
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N> + UniformRand,
+    R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N> + UniformRand,
 {
     let nu = params.nu;
     let mu = params.mu;
@@ -224,7 +224,7 @@ fn build_inner_commitment_phi<R, const N: usize>(
     b1_powers: &[R],
 ) -> Vec<Vec<CyclotomicPolyRing<R, N>>>
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N> + UniformRand,
+    R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N> + UniformRand,
 {
     let r_prime = 2 * nu + mu;
     let n = key.a.cols();
@@ -283,7 +283,7 @@ fn build_outer_u1_phi<R, const N: usize>(
     v_start: usize,
 ) -> Vec<Vec<CyclotomicPolyRing<R, N>>>
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N> + UniformRand,
+    R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N> + UniformRand,
 {
     let zero = CyclotomicPolyRing::<R, N>::zero();
     let mut phi = vec![vec![zero.clone(); n_prime]; r_prime];
@@ -327,7 +327,7 @@ fn build_outer_u2_phi<R, const N: usize>(
     v_start: usize,
 ) -> Vec<Vec<CyclotomicPolyRing<R, N>>>
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N> + UniformRand,
+    R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N> + UniformRand,
 {
     let zero = CyclotomicPolyRing::<R, N>::zero();
     let mut phi = vec![vec![zero.clone(); n_prime]; r_prime];
@@ -373,7 +373,7 @@ fn build_garbage_3a<R, const N: usize>(
     CyclotomicPolyRing<R, N>,
 )
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N> + UniformRand,
+    R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N> + UniformRand,
 {
     let zero = CyclotomicPolyRing::<R, N>::zero();
     let mut quad = Vec::new();
@@ -453,7 +453,7 @@ fn build_garbage_3b<R, const N: usize>(
     CyclotomicPolyRing<R, N>,
 )
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N> + UniformRand,
+    R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N> + UniformRand,
 {
     let zero = CyclotomicPolyRing::<R, N>::zero();
     assert!(
@@ -543,7 +543,7 @@ fn build_garbage_3c<R, const N: usize>(
     CyclotomicPolyRing<R, N>,
 )
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N> + UniformRand,
+    R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N> + UniformRand,
 {
     let zero = CyclotomicPolyRing::<R, N>::zero();
 
@@ -666,7 +666,7 @@ pub fn build_last_level_target<R, const N: usize>(
     source_r: usize,
 ) -> Result<RecursiveTarget<R, N>, LabradorError>
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N> + UniformRand,
+    R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N> + UniformRand,
 {
     let nu = params.nu;
     let mu = params.mu;
@@ -816,7 +816,7 @@ fn build_last_level_inner_phi<R, const N: usize>(
     b1_powers: &[R],
 ) -> Vec<Vec<CyclotomicPolyRing<R, N>>>
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N> + UniformRand,
+    R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N> + UniformRand,
 {
     let n = a.cols();
     let zero = CyclotomicPolyRing::<R, N>::zero();
@@ -872,7 +872,7 @@ fn build_last_level_garbage_3a<R, const N: usize>(
     CyclotomicPolyRing<R, N>,
 )
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N> + UniformRand,
+    R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N> + UniformRand,
 {
     let zero = CyclotomicPolyRing::<R, N>::zero();
     let mut quad = Vec::new();
@@ -927,7 +927,7 @@ fn build_last_level_garbage_3b<R, const N: usize>(
     CyclotomicPolyRing<R, N>,
 )
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N> + UniformRand,
+    R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N> + UniformRand,
 {
     let zero = CyclotomicPolyRing::<R, N>::zero();
     assert!(

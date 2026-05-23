@@ -20,7 +20,7 @@ use crate::relation::LabradorWitness;
 #[derive(Debug, Clone)]
 pub struct AmortizationData<R, const N: usize>
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N>,
+    R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N>,
 {
     /// Amortized witness opening: z = Σ c_i · s_i, a vector of rank n.
     pub z: Vec<CyclotomicPolyRing<R, N>>,
@@ -39,7 +39,7 @@ pub fn sample_amortization_challenges<R, const N: usize, T>(
     level: usize,
 ) -> Result<Vec<CyclotomicPolyRing<R, N>>, LabradorError>
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N>,
+    R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N>,
     T: Transcript,
 {
     let sampler = FoldingChallengeSampler::new(params.challenge.clone());
@@ -65,7 +65,7 @@ pub fn compute_amortized_witness<R, const N: usize, T>(
     level: usize,
 ) -> Result<AmortizationData<R, N>, LabradorError>
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N>,
+    R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N>,
     T: Transcript,
 {
     let r = witness.num_parts();

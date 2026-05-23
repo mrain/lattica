@@ -5,7 +5,6 @@
 
 use core::ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
-use super::large_modulus::LargeCanonicalRing;
 use super::ring::{IntegerRing, Ring};
 use crate::simd::dispatch::{Backend, selected_backend};
 use grid_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
@@ -416,25 +415,40 @@ impl<const K: u32> Ring for Z2K<K> {
 }
 
 impl<const K: u32> IntegerRing for Z2K<K> {
-    type Uint = u64;
+    type Canonical = u64;
 
     #[inline]
-    fn modulus() -> u64 {
+    fn modulus_canonical() -> u64 {
         if K == 64 {
-            0 // 2^64 doesn't fit in u64; the exact modulus stays available via LargeCanonicalRing.
+            0 // 2^64 doesn't fit in u64.
         } else {
             1u64 << K
         }
     }
 
     #[inline]
-    fn from_u64(val: u64) -> Self {
+    fn from_small_u64(val: u64) -> Self {
         Self::new(val)
     }
 
     #[inline]
-    fn to_u64(&self) -> u64 {
+    fn from_canonical(value: &u64) -> Self {
+        Self::new(*value)
+    }
+
+    #[inline]
+    fn to_canonical(&self) -> u64 {
         self.val
+    }
+
+    #[inline]
+    fn try_to_u64(&self) -> Option<u64> {
+        Some(self.val)
+    }
+
+    #[inline]
+    fn try_to_u128(&self) -> Option<u128> {
+        Some(self.val as u128)
     }
 
     #[inline]
@@ -455,40 +469,6 @@ impl<const K: u32> IntegerRing for Z2K<K> {
     #[inline]
     fn reduce(&self) -> Self {
         *self // Already masked
-    }
-}
-
-impl<const K: u32> LargeCanonicalRing for Z2K<K> {
-    type Canonical = u128;
-
-    #[inline]
-    fn modulus_canonical() -> Self::Canonical {
-        if K == 64 { 1u128 << 64 } else { 1u128 << K }
-    }
-
-    #[inline]
-    fn from_small_u64(value: u64) -> Self {
-        Self::from_u64(value)
-    }
-
-    #[inline]
-    fn from_canonical(value: &Self::Canonical) -> Self {
-        Self::new(*value as u64)
-    }
-
-    #[inline]
-    fn to_canonical(&self) -> Self::Canonical {
-        self.val as u128
-    }
-
-    #[inline]
-    fn try_to_u64(&self) -> Option<u64> {
-        Some(self.val)
-    }
-
-    #[inline]
-    fn try_to_u128(&self) -> Option<u128> {
-        Some(self.val as u128)
     }
 }
 
@@ -715,9 +695,7 @@ mod tests {
     }
 
     #[test]
-    fn test_power_of_two_large_canonical_ring_round_trip() {
-        use super::LargeCanonicalRing;
-
+    fn test_power_of_two_integer_ring_round_trip() {
         let value = Z16::from_small_u64(31);
         assert_eq!(value.to_canonical(), 15);
         assert_eq!(Z16::modulus_canonical(), 16);
@@ -727,12 +705,12 @@ mod tests {
     }
 
     #[test]
-    fn test_power_of_two_large_canonical_ring_handles_2_to_64_modulus() {
-        use super::LargeCanonicalRing;
+    fn test_power_of_two_integer_ring_handles_2_to_64_modulus() {
+        // `IntegerRing::Canonical = u64` for small rings; `0` is the existing sentinel for
+        // the modulus 2^64, which cannot be represented as a `u64`.
+        assert_eq!(Z2_64::modulus_canonical(), 0);
 
-        assert_eq!(Z2_64::modulus_canonical(), 1u128 << 64);
-
-        let canonical = (1u128 << 80) | 7;
+        let canonical = 7u64;
         let reduced = Z2_64::from_canonical(&canonical);
         assert_eq!(reduced.to_canonical(), 7);
     }

@@ -5,163 +5,14 @@
 
 use core::ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
-use super::large_modulus::LargeCanonicalRing;
+use super::limb::UintLimb;
 use super::ntt::{NTTRing, NttError, NttPlan, cached_ntt_plan};
 use super::ring::{Field, IntegerRing, Ring};
-use crate::simd::montgomery_prime;
+use crate::simd::montgomery;
 use grid_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
 
 /// Goldilocks prime: `2^64 - 2^32 + 1`.
 pub const GOLDILOCKS_MODULUS: u64 = 0xffff_ffff_0000_0001;
-
-/// Module sealing the [`PrimeFieldLimb`] trait so only the four primitive unsigned integers
-/// can be used as limb types.
-mod limb_sealed {
-    pub trait Sealed {}
-    impl Sealed for u8 {}
-    impl Sealed for u16 {}
-    impl Sealed for u32 {}
-    impl Sealed for u64 {}
-}
-
-/// Abstraction over the limb (word) type used as the Montgomery backend for [`PrimeField`].
-///
-/// Only implemented for `u8`, `u16`, `u32`, and `u64`.
-pub trait PrimeFieldLimb:
-    limb_sealed::Sealed
-    + Copy
-    + PartialEq
-    + Eq
-    + PartialOrd
-    + Ord
-    + core::fmt::Debug
-    + core::ops::Add<Output = Self>
-    + core::ops::Sub<Output = Self>
-    + core::ops::Mul<Output = Self>
-    + core::ops::AddAssign
-    + core::ops::SubAssign
-    + core::ops::MulAssign
-    + Send
-    + Sync
-    + 'static
-{
-    /// The next-wider unsigned integer (`u16` for `u8`, `u32` for `u16`, `u64` for `u32`, `u128` for `u64`).
-    type Wide: Copy + 'static;
-
-    /// Number of bits in this limb type.
-    const BITS: u32;
-    const ZERO: Self;
-    const ONE: Self;
-    const MAX: Self;
-
-    fn from_u64(v: u64) -> Self;
-
-    fn to_u64(self) -> u64;
-
-    fn to_wide(self) -> Self::Wide;
-
-    fn from_wide_truncate(w: Self::Wide) -> Self;
-
-    fn wrapping_add(self, rhs: Self) -> Self;
-
-    fn wrapping_sub(self, rhs: Self) -> Self;
-
-    fn wrapping_mul(self, rhs: Self) -> Self;
-
-    fn overflowing_add(self, rhs: Self) -> (Self, bool);
-
-    fn wide_add(a: Self::Wide, b: Self::Wide) -> Self::Wide;
-
-    fn wide_mul(a: Self::Wide, b: Self::Wide) -> Self::Wide;
-
-    fn wide_shr(w: Self::Wide, shift: u32) -> Self::Wide;
-
-    fn wide_from_u64(v: u64) -> Self::Wide;
-
-    fn wrapping_neg(self) -> Self;
-
-    fn mod_limb(self, modulus: Self) -> Self;
-
-    fn leading_zeros(self) -> u32;
-}
-
-macro_rules! impl_prime_field_limb {
-    ($ty:ty, $wide:ty, $bits:expr) => {
-        impl PrimeFieldLimb for $ty {
-            type Wide = $wide;
-            const BITS: u32 = $bits;
-            const ZERO: Self = 0;
-            const ONE: Self = 1;
-            const MAX: Self = <$ty>::MAX;
-
-            #[inline(always)]
-            fn from_u64(v: u64) -> Self {
-                v as $ty
-            }
-            #[inline(always)]
-            fn to_u64(self) -> u64 {
-                self as u64
-            }
-            #[inline(always)]
-            fn to_wide(self) -> Self::Wide {
-                self as $wide
-            }
-            #[inline(always)]
-            fn from_wide_truncate(w: Self::Wide) -> Self {
-                w as $ty
-            }
-            #[inline(always)]
-            fn wrapping_add(self, rhs: Self) -> Self {
-                <$ty>::wrapping_add(self, rhs)
-            }
-            #[inline(always)]
-            fn wrapping_sub(self, rhs: Self) -> Self {
-                <$ty>::wrapping_sub(self, rhs)
-            }
-            #[inline(always)]
-            fn wrapping_mul(self, rhs: Self) -> Self {
-                <$ty>::wrapping_mul(self, rhs)
-            }
-            #[inline(always)]
-            fn overflowing_add(self, rhs: Self) -> (Self, bool) {
-                <$ty>::overflowing_add(self, rhs)
-            }
-            #[inline(always)]
-            fn wide_add(a: Self::Wide, b: Self::Wide) -> Self::Wide {
-                a + b
-            }
-            #[inline(always)]
-            fn wide_mul(a: Self::Wide, b: Self::Wide) -> Self::Wide {
-                a * b
-            }
-            #[inline(always)]
-            fn wide_shr(w: Self::Wide, shift: u32) -> Self::Wide {
-                w >> shift
-            }
-            #[inline(always)]
-            fn wide_from_u64(v: u64) -> Self::Wide {
-                v as $wide
-            }
-            #[inline(always)]
-            fn wrapping_neg(self) -> Self {
-                self.wrapping_neg()
-            }
-            #[inline(always)]
-            fn mod_limb(self, modulus: Self) -> Self {
-                if self < modulus { self } else { self % modulus }
-            }
-            #[inline(always)]
-            fn leading_zeros(self) -> u32 {
-                <$ty>::leading_zeros(self)
-            }
-        }
-    };
-}
-
-impl_prime_field_limb!(u64, u128, 64);
-impl_prime_field_limb!(u32, u64, 32);
-impl_prime_field_limb!(u16, u32, 16);
-impl_prime_field_limb!(u8, u16, 8);
 
 /// A modular integer in Montgomery form for a prime modulus.
 ///
@@ -172,12 +23,12 @@ impl_prime_field_limb!(u8, u16, 8);
 /// `L` is the limb type (defaults to `u64`).
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq)]
-pub struct PrimeField<const Q: u64, L: PrimeFieldLimb = u64> {
+pub struct PrimeField<const Q: u64, L: UintLimb = u64> {
     /// Value in Montgomery form: `val = a * R mod Q` where `R = 2^{L::BITS}`.
     val: L,
 }
 
-impl<const Q: u64, L: PrimeFieldLimb> PrimeField<Q, L> {
+impl<const Q: u64, L: UintLimb> PrimeField<Q, L> {
     /// The validated modulus for this field.
     pub const MODULUS: u64 = {
         assert!(
@@ -385,14 +236,14 @@ impl<const Q: u64, L: PrimeFieldLimb> PrimeField<Q, L> {
     }
 }
 
-impl<const Q: u64, L: PrimeFieldLimb> core::fmt::Debug for PrimeField<Q, L> {
+impl<const Q: u64, L: UintLimb> core::fmt::Debug for PrimeField<Q, L> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "PrimeField<{}>({}", Q, self.from_montgomery().to_u64())?;
         write!(f, ")")
     }
 }
 
-impl<const Q: u64, L: PrimeFieldLimb> core::fmt::Display for PrimeField<Q, L> {
+impl<const Q: u64, L: UintLimb> core::fmt::Display for PrimeField<Q, L> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "{}", self.from_montgomery().to_u64())
     }
@@ -400,7 +251,7 @@ impl<const Q: u64, L: PrimeFieldLimb> core::fmt::Display for PrimeField<Q, L> {
 
 // --- Operator impls ---
 
-impl<const Q: u64, L: PrimeFieldLimb> Add for PrimeField<Q, L> {
+impl<const Q: u64, L: UintLimb> Add for PrimeField<Q, L> {
     type Output = Self;
     #[inline]
     fn add(self, rhs: Self) -> Self {
@@ -411,7 +262,7 @@ impl<const Q: u64, L: PrimeFieldLimb> Add for PrimeField<Q, L> {
     }
 }
 
-impl<const Q: u64, L: PrimeFieldLimb> Add<&Self> for PrimeField<Q, L> {
+impl<const Q: u64, L: UintLimb> Add<&Self> for PrimeField<Q, L> {
     type Output = Self;
     #[inline]
     fn add(self, rhs: &Self) -> Self {
@@ -419,21 +270,21 @@ impl<const Q: u64, L: PrimeFieldLimb> Add<&Self> for PrimeField<Q, L> {
     }
 }
 
-impl<const Q: u64, L: PrimeFieldLimb> AddAssign for PrimeField<Q, L> {
+impl<const Q: u64, L: UintLimb> AddAssign for PrimeField<Q, L> {
     #[inline]
     fn add_assign(&mut self, rhs: Self) {
         *self = *self + rhs;
     }
 }
 
-impl<const Q: u64, L: PrimeFieldLimb> AddAssign<&Self> for PrimeField<Q, L> {
+impl<const Q: u64, L: UintLimb> AddAssign<&Self> for PrimeField<Q, L> {
     #[inline]
     fn add_assign(&mut self, rhs: &Self) {
         *self = *self + *rhs;
     }
 }
 
-impl<const Q: u64, L: PrimeFieldLimb> Sub for PrimeField<Q, L> {
+impl<const Q: u64, L: UintLimb> Sub for PrimeField<Q, L> {
     type Output = Self;
     #[inline]
     fn sub(self, rhs: Self) -> Self {
@@ -444,7 +295,7 @@ impl<const Q: u64, L: PrimeFieldLimb> Sub for PrimeField<Q, L> {
     }
 }
 
-impl<const Q: u64, L: PrimeFieldLimb> Sub<&Self> for PrimeField<Q, L> {
+impl<const Q: u64, L: UintLimb> Sub<&Self> for PrimeField<Q, L> {
     type Output = Self;
     #[inline]
     fn sub(self, rhs: &Self) -> Self {
@@ -452,21 +303,21 @@ impl<const Q: u64, L: PrimeFieldLimb> Sub<&Self> for PrimeField<Q, L> {
     }
 }
 
-impl<const Q: u64, L: PrimeFieldLimb> SubAssign for PrimeField<Q, L> {
+impl<const Q: u64, L: UintLimb> SubAssign for PrimeField<Q, L> {
     #[inline]
     fn sub_assign(&mut self, rhs: Self) {
         *self = *self - rhs;
     }
 }
 
-impl<const Q: u64, L: PrimeFieldLimb> SubAssign<&Self> for PrimeField<Q, L> {
+impl<const Q: u64, L: UintLimb> SubAssign<&Self> for PrimeField<Q, L> {
     #[inline]
     fn sub_assign(&mut self, rhs: &Self) {
         *self = *self - *rhs;
     }
 }
 
-impl<const Q: u64, L: PrimeFieldLimb> Mul for PrimeField<Q, L> {
+impl<const Q: u64, L: UintLimb> Mul for PrimeField<Q, L> {
     type Output = Self;
     #[inline]
     fn mul(self, rhs: Self) -> Self {
@@ -477,7 +328,7 @@ impl<const Q: u64, L: PrimeFieldLimb> Mul for PrimeField<Q, L> {
     }
 }
 
-impl<const Q: u64, L: PrimeFieldLimb> Mul<&Self> for PrimeField<Q, L> {
+impl<const Q: u64, L: UintLimb> Mul<&Self> for PrimeField<Q, L> {
     type Output = Self;
     #[inline]
     fn mul(self, rhs: &Self) -> Self {
@@ -485,21 +336,21 @@ impl<const Q: u64, L: PrimeFieldLimb> Mul<&Self> for PrimeField<Q, L> {
     }
 }
 
-impl<const Q: u64, L: PrimeFieldLimb> MulAssign for PrimeField<Q, L> {
+impl<const Q: u64, L: UintLimb> MulAssign for PrimeField<Q, L> {
     #[inline]
     fn mul_assign(&mut self, rhs: Self) {
         *self = *self * rhs;
     }
 }
 
-impl<const Q: u64, L: PrimeFieldLimb> MulAssign<&Self> for PrimeField<Q, L> {
+impl<const Q: u64, L: UintLimb> MulAssign<&Self> for PrimeField<Q, L> {
     #[inline]
     fn mul_assign(&mut self, rhs: &Self) {
         *self = *self * *rhs;
     }
 }
 
-impl<const Q: u64, L: PrimeFieldLimb> Add<Self> for &PrimeField<Q, L> {
+impl<const Q: u64, L: UintLimb> Add<Self> for &PrimeField<Q, L> {
     type Output = PrimeField<Q, L>;
     #[inline]
     fn add(self, rhs: Self) -> Self::Output {
@@ -507,7 +358,7 @@ impl<const Q: u64, L: PrimeFieldLimb> Add<Self> for &PrimeField<Q, L> {
     }
 }
 
-impl<const Q: u64, L: PrimeFieldLimb> Add<PrimeField<Q, L>> for &PrimeField<Q, L> {
+impl<const Q: u64, L: UintLimb> Add<PrimeField<Q, L>> for &PrimeField<Q, L> {
     type Output = PrimeField<Q, L>;
     #[inline]
     fn add(self, rhs: PrimeField<Q, L>) -> Self::Output {
@@ -515,7 +366,7 @@ impl<const Q: u64, L: PrimeFieldLimb> Add<PrimeField<Q, L>> for &PrimeField<Q, L
     }
 }
 
-impl<const Q: u64, L: PrimeFieldLimb> Sub<Self> for &PrimeField<Q, L> {
+impl<const Q: u64, L: UintLimb> Sub<Self> for &PrimeField<Q, L> {
     type Output = PrimeField<Q, L>;
     #[inline]
     fn sub(self, rhs: Self) -> Self::Output {
@@ -523,7 +374,7 @@ impl<const Q: u64, L: PrimeFieldLimb> Sub<Self> for &PrimeField<Q, L> {
     }
 }
 
-impl<const Q: u64, L: PrimeFieldLimb> Sub<PrimeField<Q, L>> for &PrimeField<Q, L> {
+impl<const Q: u64, L: UintLimb> Sub<PrimeField<Q, L>> for &PrimeField<Q, L> {
     type Output = PrimeField<Q, L>;
     #[inline]
     fn sub(self, rhs: PrimeField<Q, L>) -> Self::Output {
@@ -531,7 +382,7 @@ impl<const Q: u64, L: PrimeFieldLimb> Sub<PrimeField<Q, L>> for &PrimeField<Q, L
     }
 }
 
-impl<const Q: u64, L: PrimeFieldLimb> Mul<Self> for &PrimeField<Q, L> {
+impl<const Q: u64, L: UintLimb> Mul<Self> for &PrimeField<Q, L> {
     type Output = PrimeField<Q, L>;
     #[inline]
     fn mul(self, rhs: Self) -> Self::Output {
@@ -539,7 +390,7 @@ impl<const Q: u64, L: PrimeFieldLimb> Mul<Self> for &PrimeField<Q, L> {
     }
 }
 
-impl<const Q: u64, L: PrimeFieldLimb> Mul<PrimeField<Q, L>> for &PrimeField<Q, L> {
+impl<const Q: u64, L: UintLimb> Mul<PrimeField<Q, L>> for &PrimeField<Q, L> {
     type Output = PrimeField<Q, L>;
     #[inline]
     fn mul(self, rhs: PrimeField<Q, L>) -> Self::Output {
@@ -547,7 +398,7 @@ impl<const Q: u64, L: PrimeFieldLimb> Mul<PrimeField<Q, L>> for &PrimeField<Q, L
     }
 }
 
-impl<const Q: u64, L: PrimeFieldLimb> Neg for PrimeField<Q, L> {
+impl<const Q: u64, L: UintLimb> Neg for PrimeField<Q, L> {
     type Output = Self;
     #[inline]
     fn neg(self) -> Self {
@@ -564,7 +415,7 @@ impl<const Q: u64, L: PrimeFieldLimb> Neg for PrimeField<Q, L> {
 
 // --- Trait impls ---
 
-impl<const Q: u64, L: PrimeFieldLimb> Ring for PrimeField<Q, L> {
+impl<const Q: u64, L: UintLimb> Ring for PrimeField<Q, L> {
     #[inline]
     fn zero() -> Self {
         Self::check_modulus();
@@ -580,19 +431,19 @@ impl<const Q: u64, L: PrimeFieldLimb> Ring for PrimeField<Q, L> {
     }
 
     fn add_assign_slice(dst: &mut [Self], src: &[Self]) {
-        montgomery_prime::add_assign(dst, src);
+        montgomery::add_assign(dst, src);
     }
 
     fn sub_assign_slice(dst: &mut [Self], src: &[Self]) {
-        montgomery_prime::sub_assign(dst, src);
+        montgomery::sub_assign(dst, src);
     }
 
     fn scalar_mul_slice(dst: &mut [Self], scalar: &Self) {
-        montgomery_prime::scalar_mul(dst, scalar);
+        montgomery::scalar_mul(dst, scalar);
     }
 
     fn pointwise_mul_assign_slice(dst: &mut [Self], rhs: &[Self]) {
-        montgomery_prime::pointwise_mul_assign(dst, rhs);
+        montgomery::pointwise_mul_assign(dst, rhs);
     }
 
     fn add_assign_scaled_slice(dst: &mut [Self], src: &[Self], scalar: &Self) {
@@ -655,29 +506,44 @@ impl<const Q: u64, L: PrimeFieldLimb> Ring for PrimeField<Q, L> {
     }
 }
 
-impl<const Q: u64, L: PrimeFieldLimb> IntegerRing for PrimeField<Q, L> {
-    type Uint = u64;
+impl<const Q: u64, L: UintLimb> IntegerRing for PrimeField<Q, L> {
+    type Canonical = u64;
 
     #[inline]
-    fn modulus() -> u64 {
+    fn modulus_canonical() -> u64 {
         Self::check_modulus();
         Self::MODULUS
     }
 
     #[inline]
-    fn from_u64(val: u64) -> Self {
+    fn from_small_u64(val: u64) -> Self {
         Self::to_montgomery(L::from_u64(val % Q))
     }
 
     #[inline]
-    fn to_u64(&self) -> u64 {
+    fn from_canonical(value: &u64) -> Self {
+        Self::from_small_u64(*value)
+    }
+
+    #[inline]
+    fn to_canonical(&self) -> u64 {
         self.from_montgomery().to_u64()
+    }
+
+    #[inline]
+    fn try_to_u64(&self) -> Option<u64> {
+        Some(self.to_canonical())
+    }
+
+    #[inline]
+    fn try_to_u128(&self) -> Option<u128> {
+        Some(self.to_canonical() as u128)
     }
 
     #[inline]
     fn lossy_l2_value(&self) -> f64 {
         let v = self.from_montgomery().to_u64() as f64;
-        let q = Self::modulus() as f64;
+        let q = Self::modulus_canonical() as f64;
         let half = q * 0.5;
         if v > half { v - q } else { v }
     }
@@ -689,7 +555,7 @@ impl<const Q: u64, L: PrimeFieldLimb> IntegerRing for PrimeField<Q, L> {
     }
 }
 
-impl<const Q: u64, L: PrimeFieldLimb> Field for PrimeField<Q, L> {
+impl<const Q: u64, L: UintLimb> Field for PrimeField<Q, L> {
     fn inv(&self) -> Self {
         Self::check_modulus();
         assert!(!self.is_zero(), "cannot invert zero");
@@ -697,41 +563,7 @@ impl<const Q: u64, L: PrimeFieldLimb> Field for PrimeField<Q, L> {
     }
 }
 
-impl<const Q: u64, L: PrimeFieldLimb> LargeCanonicalRing for PrimeField<Q, L> {
-    type Canonical = u64;
-
-    #[inline]
-    fn modulus_canonical() -> Self::Canonical {
-        Self::MODULUS
-    }
-
-    #[inline]
-    fn from_small_u64(value: u64) -> Self {
-        Self::from_u64(value)
-    }
-
-    #[inline]
-    fn from_canonical(value: &Self::Canonical) -> Self {
-        Self::from_u64(*value)
-    }
-
-    #[inline]
-    fn to_canonical(&self) -> Self::Canonical {
-        self.to_u64()
-    }
-
-    #[inline]
-    fn try_to_u64(&self) -> Option<u64> {
-        Some(self.to_u64())
-    }
-
-    #[inline]
-    fn try_to_u128(&self) -> Option<u128> {
-        Some(self.to_u64() as u128)
-    }
-}
-
-impl<const Q: u64, L: PrimeFieldLimb> NTTRing for PrimeField<Q, L> {
+impl<const Q: u64, L: UintLimb> NTTRing for PrimeField<Q, L> {
     fn root_of_unity(n: usize) -> Option<Self> {
         Self::check_modulus();
         if !(Q - 1).is_multiple_of(n as u64) {
@@ -786,7 +618,7 @@ impl<const Q: u64, L: PrimeFieldLimb> NTTRing for PrimeField<Q, L> {
     where
         Self: Field,
     {
-        montgomery_prime::ntt_forward_with_plan(coeffs, plan)
+        montgomery::ntt_forward_with_plan(coeffs, plan)
     }
 
     fn ntt_inverse_in_place(evals: &mut [Self]) -> Result<(), NttError>
@@ -801,11 +633,11 @@ impl<const Q: u64, L: PrimeFieldLimb> NTTRing for PrimeField<Q, L> {
     where
         Self: Field,
     {
-        montgomery_prime::ntt_inverse_with_plan(evals, plan)
+        montgomery::ntt_inverse_with_plan(evals, plan)
     }
 }
 
-impl<const Q: u64, L: PrimeFieldLimb> PrimeField<Q, L> {
+impl<const Q: u64, L: UintLimb> PrimeField<Q, L> {
     /// Find a generator of the multiplicative group Z_q*.
     ///
     /// Uses trial from small values. Returns `None` if Q is not prime
@@ -855,7 +687,7 @@ impl<const Q: u64, L: PrimeFieldLimb> PrimeField<Q, L> {
     }
 }
 
-impl<const Q: u64, L: PrimeFieldLimb> CanonicalSerialize for PrimeField<Q, L> {
+impl<const Q: u64, L: UintLimb> CanonicalSerialize for PrimeField<Q, L> {
     fn serialized_size(&self) -> usize {
         Self::check_modulus();
         Self::SERIALIZED_BYTES
@@ -870,7 +702,7 @@ impl<const Q: u64, L: PrimeFieldLimb> CanonicalSerialize for PrimeField<Q, L> {
     }
 }
 
-impl<const Q: u64, L: PrimeFieldLimb> CanonicalDeserialize for PrimeField<Q, L> {
+impl<const Q: u64, L: UintLimb> CanonicalDeserialize for PrimeField<Q, L> {
     fn deserialize(data: &[u8]) -> Result<(Self, usize), SerializationError> {
         Self::check_modulus();
         if data.len() < Self::SERIALIZED_BYTES {
@@ -888,14 +720,14 @@ impl<const Q: u64, L: PrimeFieldLimb> CanonicalDeserialize for PrimeField<Q, L> 
     }
 }
 
-impl<const Q: u64, L: PrimeFieldLimb> grid_serialize::Valid for PrimeField<Q, L> {
+impl<const Q: u64, L: UintLimb> grid_serialize::Valid for PrimeField<Q, L> {
     fn is_valid(&self) -> bool {
         Self::check_modulus();
         self.val < Self::modulus_limb()
     }
 }
 
-impl<const Q: u64, L: PrimeFieldLimb> grid_std::UniformRand for PrimeField<Q, L> {
+impl<const Q: u64, L: UintLimb> grid_std::UniformRand for PrimeField<Q, L> {
     fn rand<R: grid_std::rand::RngExt + ?Sized>(rng: &mut R) -> Self {
         Self::check_modulus();
         // Rejection sampling in u64, then convert to field element
@@ -990,7 +822,7 @@ const fn pow_mod_const(mut base: u64, mut exp: u64, modulus: u64) -> u64 {
 mod tests {
     use super::*;
     use crate::arith::ring::tests::{test_field_axioms, test_integer_ring, test_ring_axioms};
-    use crate::simd::montgomery_prime::MontgomeryPrimeSimd;
+    use crate::simd::montgomery::MontgomeryUintSimd;
     use core::hint::black_box;
     use core::mem::{align_of, size_of};
     use grid_serialize::Valid;
@@ -1141,83 +973,81 @@ mod tests {
     #[test]
     fn test_simd_qualification_bands() {
         assert!(black_box(
-            <F17 as MontgomeryPrimeSimd>::AVX2_ADD_SUB_QUALIFIED
+            <F17 as MontgomeryUintSimd>::AVX2_ADD_SUB_QUALIFIED
         ));
         assert!(black_box(
-            <F17 as MontgomeryPrimeSimd>::NEON_ADD_SUB_QUALIFIED
+            <F17 as MontgomeryUintSimd>::NEON_ADD_SUB_QUALIFIED
         ));
         assert!(black_box(
-            <F17 as MontgomeryPrimeSimd>::AVX2_MONTGOMERY_QUALIFIED
+            <F17 as MontgomeryUintSimd>::AVX2_MONTGOMERY_QUALIFIED
         ));
         assert!(!black_box(
-            <F17 as MontgomeryPrimeSimd>::NEON_MONTGOMERY_QUALIFIED
+            <F17 as MontgomeryUintSimd>::NEON_MONTGOMERY_QUALIFIED
         ));
 
         assert!(black_box(
-            <F3329 as MontgomeryPrimeSimd>::AVX2_ADD_SUB_QUALIFIED
+            <F3329 as MontgomeryUintSimd>::AVX2_ADD_SUB_QUALIFIED
         ));
         assert!(black_box(
-            <F3329 as MontgomeryPrimeSimd>::AVX2_MONTGOMERY_QUALIFIED
+            <F3329 as MontgomeryUintSimd>::AVX2_MONTGOMERY_QUALIFIED
         ));
-        assert!(black_box(
-            <F3329 as MontgomeryPrimeSimd>::AVX2_NTT_QUALIFIED
-        ));
+        assert!(black_box(<F3329 as MontgomeryUintSimd>::AVX2_NTT_QUALIFIED));
 
         assert!(black_box(
-            <F4294967311 as MontgomeryPrimeSimd>::AVX2_ADD_SUB_QUALIFIED
+            <F4294967311 as MontgomeryUintSimd>::AVX2_ADD_SUB_QUALIFIED
         ));
         assert!(black_box(
-            <F4294967311 as MontgomeryPrimeSimd>::NEON_ADD_SUB_QUALIFIED
+            <F4294967311 as MontgomeryUintSimd>::NEON_ADD_SUB_QUALIFIED
         ));
         assert!(black_box(
-            <F4294967311 as MontgomeryPrimeSimd>::AVX2_MONTGOMERY_QUALIFIED
+            <F4294967311 as MontgomeryUintSimd>::AVX2_MONTGOMERY_QUALIFIED
         ));
         assert!(!black_box(
-            <F4294967311 as MontgomeryPrimeSimd>::NEON_MONTGOMERY_QUALIFIED
+            <F4294967311 as MontgomeryUintSimd>::NEON_MONTGOMERY_QUALIFIED
         ));
         assert!(black_box(
-            <F4294967311 as MontgomeryPrimeSimd>::AVX2_NTT_QUALIFIED
+            <F4294967311 as MontgomeryUintSimd>::AVX2_NTT_QUALIFIED
         ));
         assert!(!black_box(
-            <F4294967311 as MontgomeryPrimeSimd>::NEON_NTT_QUALIFIED
+            <F4294967311 as MontgomeryUintSimd>::NEON_NTT_QUALIFIED
         ));
 
         assert!(!black_box(
-            <F9223372036854775783 as MontgomeryPrimeSimd>::AVX2_ADD_SUB_QUALIFIED
+            <F9223372036854775783 as MontgomeryUintSimd>::AVX2_ADD_SUB_QUALIFIED
         ));
         assert!(black_box(
-            <F9223372036854775783 as MontgomeryPrimeSimd>::NEON_ADD_SUB_QUALIFIED
+            <F9223372036854775783 as MontgomeryUintSimd>::NEON_ADD_SUB_QUALIFIED
         ));
         assert!(black_box(
-            <F9223372036854775783 as MontgomeryPrimeSimd>::AVX2_MONTGOMERY_QUALIFIED
+            <F9223372036854775783 as MontgomeryUintSimd>::AVX2_MONTGOMERY_QUALIFIED
         ));
         assert!(!black_box(
-            <F9223372036854775783 as MontgomeryPrimeSimd>::NEON_MONTGOMERY_QUALIFIED
+            <F9223372036854775783 as MontgomeryUintSimd>::NEON_MONTGOMERY_QUALIFIED
         ));
         assert!(black_box(
-            <F9223372036854775783 as MontgomeryPrimeSimd>::AVX2_NTT_QUALIFIED
+            <F9223372036854775783 as MontgomeryUintSimd>::AVX2_NTT_QUALIFIED
         ));
         assert!(!black_box(
-            <F9223372036854775783 as MontgomeryPrimeSimd>::NEON_NTT_QUALIFIED
+            <F9223372036854775783 as MontgomeryUintSimd>::NEON_NTT_QUALIFIED
         ));
 
         assert!(!black_box(
-            <FGoldilocks as MontgomeryPrimeSimd>::AVX2_ADD_SUB_QUALIFIED
+            <FGoldilocks as MontgomeryUintSimd>::AVX2_ADD_SUB_QUALIFIED
         ));
         assert!(!black_box(
-            <FGoldilocks as MontgomeryPrimeSimd>::NEON_ADD_SUB_QUALIFIED
+            <FGoldilocks as MontgomeryUintSimd>::NEON_ADD_SUB_QUALIFIED
         ));
         assert!(black_box(
-            <FGoldilocks as MontgomeryPrimeSimd>::AVX2_MONTGOMERY_QUALIFIED
+            <FGoldilocks as MontgomeryUintSimd>::AVX2_MONTGOMERY_QUALIFIED
         ));
         assert!(!black_box(
-            <FGoldilocks as MontgomeryPrimeSimd>::NEON_MONTGOMERY_QUALIFIED
+            <FGoldilocks as MontgomeryUintSimd>::NEON_MONTGOMERY_QUALIFIED
         ));
         assert!(black_box(
-            <FGoldilocks as MontgomeryPrimeSimd>::AVX2_NTT_QUALIFIED
+            <FGoldilocks as MontgomeryUintSimd>::AVX2_NTT_QUALIFIED
         ));
         assert!(!black_box(
-            <FGoldilocks as MontgomeryPrimeSimd>::NEON_NTT_QUALIFIED
+            <FGoldilocks as MontgomeryUintSimd>::NEON_NTT_QUALIFIED
         ));
     }
 
@@ -1566,8 +1396,6 @@ mod tests {
 
     #[test]
     fn test_prime_field_large_canonical_ring_round_trip() {
-        use super::LargeCanonicalRing;
-
         let value = F17::from_small_u64(19);
         assert_eq!(value.to_canonical(), 2);
         assert_eq!(F17::modulus_canonical(), 17);

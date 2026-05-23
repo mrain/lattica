@@ -4,7 +4,6 @@ use alloc::vec;
 use alloc::vec::Vec;
 
 use crate::arith::bigint::BigUint;
-use crate::arith::large_modulus::LargeCanonicalRing;
 use crate::arith::ring::IntegerRing;
 
 fn num_digits(mut modulus: u64, base: u64) -> usize {
@@ -17,7 +16,7 @@ fn num_digits(mut modulus: u64, base: u64) -> usize {
     digits.max(1)
 }
 
-fn max_canonical_value<R: IntegerRing<Uint = u64>>() -> u64 {
+fn max_canonical_value<R: IntegerRing<Canonical = u64>>() -> u64 {
     let modulus = R::modulus();
     if modulus == 0 { u64::MAX } else { modulus - 1 }
 }
@@ -34,7 +33,7 @@ fn num_digits_big<const N: usize>(mut modulus: BigUint<N>, base: u64) -> usize {
 
 fn max_canonical_value_big<R, const N: usize>() -> BigUint<N>
 where
-    R: LargeCanonicalRing<Canonical = BigUint<N>>,
+    R: IntegerRing<Canonical = BigUint<N>>,
 {
     let (max, borrow) = R::modulus_canonical().sub_small(1);
     assert!(
@@ -47,7 +46,7 @@ where
 /// Decompose coefficients into base-`B` digits.
 pub fn gadget_decompose<R>(x: &[R], base: u64) -> Vec<Vec<R>>
 where
-    R: IntegerRing<Uint = u64>,
+    R: IntegerRing<Canonical = u64>,
 {
     let k = num_digits(max_canonical_value::<R>(), base);
     let mut out = vec![vec![R::zero(); x.len()]; k];
@@ -64,7 +63,7 @@ where
 /// Recompose base-`B` digits into coefficients.
 pub fn gadget_recompose<R>(digits: &[Vec<R>], base: u64) -> Vec<R>
 where
-    R: IntegerRing<Uint = u64>,
+    R: IntegerRing<Canonical = u64>,
 {
     assert!(base >= 2, "base must be at least 2");
     if digits.is_empty() {
@@ -108,7 +107,7 @@ where
 /// Return the gadget vector `[1, B, B^2, ...]`.
 pub fn gadget_vector<R>(base: u64) -> Vec<R>
 where
-    R: IntegerRing<Uint = u64>,
+    R: IntegerRing<Canonical = u64>,
 {
     let k = num_digits(max_canonical_value::<R>(), base);
     let mut out = Vec::with_capacity(k);
@@ -123,14 +122,11 @@ where
 /// Decompose coefficients into base-`B` digits for `BigUint`-backed large-modulus rings.
 pub fn gadget_decompose_large<R, const N: usize>(x: &[R], base: u64) -> Vec<Vec<R>>
 where
-    R: LargeCanonicalRing<Canonical = BigUint<N>>,
+    R: IntegerRing<Canonical = BigUint<N>>,
 {
     let k = num_digits_big(max_canonical_value_big::<R, N>(), base);
     let mut out = vec![vec![R::zero(); x.len()]; k];
-    let mut values = x
-        .iter()
-        .map(LargeCanonicalRing::to_canonical)
-        .collect::<Vec<_>>();
+    let mut values = x.iter().map(IntegerRing::to_canonical).collect::<Vec<_>>();
     for digit_vec in out.iter_mut().take(k) {
         for (digit, value) in digit_vec.iter_mut().zip(values.iter_mut()) {
             let (quotient, remainder) = value.div_rem_small(base);
@@ -144,7 +140,7 @@ where
 /// Recompose base-`B` digits into coefficients for `BigUint`-backed large-modulus rings.
 pub fn gadget_recompose_large<R, const N: usize>(digits: &[Vec<R>], base: u64) -> Vec<R>
 where
-    R: LargeCanonicalRing<Canonical = BigUint<N>>,
+    R: IntegerRing<Canonical = BigUint<N>>,
 {
     assert!(base >= 2, "base must be at least 2");
     if digits.is_empty() {
@@ -184,7 +180,7 @@ where
 /// Return the gadget vector `[1, B, B^2, ...]` for `BigUint`-backed large-modulus rings.
 pub fn gadget_vector_large<R, const N: usize>(base: u64) -> Vec<R>
 where
-    R: LargeCanonicalRing<Canonical = BigUint<N>>,
+    R: IntegerRing<Canonical = BigUint<N>>,
 {
     let k = num_digits_big(max_canonical_value_big::<R, N>(), base);
     let mut out = Vec::with_capacity(k);
@@ -206,7 +202,6 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::arith::LargeCanonicalRing;
     use crate::arith::large_prime::Bn254Fr;
     use crate::arith::large_rns::Rns3V0;
     use crate::arith::prime::PrimeField;
@@ -279,7 +274,7 @@ mod tests {
 
     fn exercise_large_gadget_round_trip<R, const N: usize>()
     where
-        R: LargeCanonicalRing<Canonical = BigUint<N>> + UniformRand + PartialEq + core::fmt::Debug,
+        R: IntegerRing<Canonical = BigUint<N>> + UniformRand + PartialEq + core::fmt::Debug,
     {
         let mut rng = grid_std::test_rng();
         let coeffs = (0..16).map(|_| R::rand(&mut rng)).collect::<Vec<_>>();

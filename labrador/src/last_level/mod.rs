@@ -49,7 +49,7 @@ pub(super) fn sample_last_level_step1_challenges<R, T>(
     transcript: &mut T,
 ) -> Result<(Vec<Vec<R>>, Vec<Vec<R>>), super::LabradorError>
 where
-    R: IntegerRing<Uint = u64>,
+    R: IntegerRing<Canonical = u64>,
     T: Transcript,
 {
     let ell = grid_std::ceil(128.0 / grid_std::log2(q)) as usize;

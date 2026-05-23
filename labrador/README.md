@@ -63,10 +63,16 @@ labrador/src/
 │   └── verifier.rs         # Garbage checks, no u₁/u₂, JL + z norm checks
 │
 ├── reduction/              # §6: R1CS → R reductions
-│   ├── mod.rs              # Shared reduction utilities
-│   ├── binary_r1cs.rs      # Binary R1CS (Figure 4), Hadamard product, σ₋₁ automorphism
-│   ├── r1cs_mod_rns.rs     # R1CS mod 2^d+1 (Figure 5), NAF encoding, φ: X↦2 morphism
-│   └── mixed_r1cs.rs       # Binary + arithmetic → single R instance
+│   ├── mod.rs              # Module declarations and re-exports
+│   ├── app_ring.rs         # AppModRing trait: NAF encoding, transcript sampling,
+│   │                       #   Fermat-modulus gating, binary encoding helpers
+│   ├── binary_r1cs.rs      # Binary R1CS (Figure 4, Theorem 6.2): GF2 matrices,
+│   │                       #   coefficient packing, padding-zero, σ₋₁ conjugacy
+│   ├── arith_r1cs.rs       # Arithmetic R1CS (Figure 5, Theorem 6.3): NAF encoding,
+│   │                       #   φ: X↦2 morphism, Hadamard dᵢ, aggregation rounds
+│   └── mixed_r1cs.rs       # Mixed R1CS (§6 prose after Figure 5): single binary
+│                           #   witness encodes arithmetic witness, shared w_pack,
+│                           #   single mixed Ajtai commitment, staged FS order
 │
 ├── params/                 # §5.4 + §5.7: Parameters and profiles
 │   ├── mod.rs              # LabradorParams struct, validate_params, validate_ranks
@@ -114,7 +120,11 @@ At the final recursion level, skip `u₁`, `u₂` entirely. Interactive rounds s
 
 ### R1CS → R Reduction (§6)
 
-Binary R1CS uses `σ₋₁` automorphism (`X↦X⁻¹`) to express binary constraints via `a∘σ₋₁(a) = a`. Arithmetic R1CS uses NAF encoding and `φ: X↦2` morphism. Mixed reduction combines both into a single relation instance.
+**Architecture.** Each reduction maps an R1CS instance over an *application ring* to a LaBRADOR principal relation over a *proof ring*. The `AppModRing` trait (in `app_ring.rs`) bridges the two: it provides NAF signed-digit encoding for arithmetic values, uniform transcript challenge sampling, and Fermat-modulus gating (`is_fermat_modulus_for_degree::<N>()`) required by the paper's constructions.
+
+- **Binary R1CS** (Figure 4, Theorem 6.2): Concrete over `GF2`. Packs N binary scalars into one proof-ring polynomial (one bit per coefficient). Zero-pads to multiples of N. Uses `σ₋₁` conjugacy to express dot products, `CoeffSumSelector` for packed binaryity/Hadamard checks, and F2-linear combination challenges (`α,β,γ → δ`). Soundness `2^{-l}`.
+- **Arithmetic R1CS** (Figure 5, Theorem 6.3): Generic over `A: AppModRing`. NAF-encodes each app-ring value as one proof-ring polynomial with coefficients in `{-1,0,1}`. Commits to `(a,b,c,w)` via CRS A and to `(d₁..d_l)` via CRS B. Verifier checks `g_j(2) = 0 mod M` via the `φ: X→2` morphism. Soundness `2·p^{-l}` where `p` is the smallest prime factor of the app modulus.
+- **Mixed R1CS** (§6 prose after Figure 5): Single binary witness `w ∈ {0,1}^{N·n_arith}` encodes the arithmetic witness. One mixed Ajtai commitment covers all 7 segments: `(bin_a, bin_b, bin_c, arith_a, arith_b, arith_c, w_pack)`. The `w_pack` part is shared between the binary and arithmetic fragments — there is no separate arithmetic `w` witness part. A separate `td` commitment covers `(d₁..d_l)`. Total soundness `2^{-l_binary} + 2·p^{-l_arithmetic}`.
 
 ## Parameter Selection (§5.4)
 

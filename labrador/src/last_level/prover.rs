@@ -34,7 +34,7 @@ use crate::relation::{LabradorStatement, LabradorWitness};
 #[derive(Debug, Clone, CanonicalSerialize, CanonicalDeserialize)]
 pub struct LastLevelProof<R, const N: usize>
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N>,
+    R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N>,
 {
     /// Inner commitments: r vectors, each of length κ.
     /// Flat RingVec of length `r*κ`, row-major: `t_vecs[i*κ + d] = t_{π(i)}[d]`.
@@ -81,7 +81,7 @@ pub fn prove_last_level<R, const N: usize, T>(
     transcript: &mut T,
 ) -> Result<LastLevelProof<R, N>, LabradorError>
 where
-    R: IntegerRing<Uint = u64>
+    R: IntegerRing<Canonical = u64>
         + NegacyclicMulRing<N>
         + UniformRand
         + CanonicalSerialize

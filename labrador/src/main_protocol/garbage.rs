@@ -20,7 +20,7 @@ use crate::relation::LabradorWitness;
 #[derive(Debug, Clone)]
 pub struct GarbageData<R, const N: usize>
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N>,
+    R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N>,
 {
     /// g_ij polynomials: upper-triangular, (r²+r)/2 entries.
     /// g_ij = ring dot product of s_i and s_j.
@@ -42,7 +42,7 @@ where
 
 impl<R, const N: usize> GarbageData<R, N>
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N>,
+    R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N>,
 {
     /// Create from g_polys only (h not yet computed).
     pub fn from_g(g_polys: Vec<CyclotomicPolyRing<R, N>>, b2: u64, t2: usize) -> Self {
@@ -77,7 +77,7 @@ pub fn compute_garbage_g<R, const N: usize>(
     witness: &LabradorWitness<CyclotomicPolyRing<R, N>>,
 ) -> Vec<CyclotomicPolyRing<R, N>>
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N>,
+    R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N>,
 {
     let r = witness.num_parts();
     let garbage_len = garbage_count(r);
@@ -103,7 +103,7 @@ pub fn compute_garbage_h<R, const N: usize>(
     aggregated_phis: &[Vec<CyclotomicPolyRing<R, N>>],
 ) -> Vec<CyclotomicPolyRing<R, N>>
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N>,
+    R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N>,
 {
     let r = witness.num_parts();
     let garbage_len = garbage_count(r);

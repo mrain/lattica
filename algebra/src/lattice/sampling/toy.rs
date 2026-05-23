@@ -4,13 +4,12 @@ use core::array::from_fn;
 use core::marker::PhantomData;
 
 use crate::arith::bigint::BigUint;
-use crate::arith::large_modulus::LargeCanonicalRing;
 use crate::arith::ring::IntegerRing;
 use crate::lattice::sampling::CoeffSampler;
 use crate::lattice::types::{RingMat, RingVec};
 use crate::poly::ring::CyclotomicPolyRing;
 
-fn encode_signed_word<R: IntegerRing<Uint = u64>>(x: i64) -> R {
+fn encode_signed_word<R: IntegerRing<Canonical = u64>>(x: i64) -> R {
     if x >= 0 {
         R::from_u64(x as u64)
     } else {
@@ -31,7 +30,7 @@ fn encode_signed_word<R: IntegerRing<Uint = u64>>(x: i64) -> R {
 
 fn encode_signed_large<R, const N: usize>(x: i64) -> R
 where
-    R: IntegerRing<Uint = BigUint<N>> + LargeCanonicalRing<Canonical = BigUint<N>>,
+    R: IntegerRing<Canonical = BigUint<N>>,
 {
     if x >= 0 {
         return R::from_small_u64(x as u64);
@@ -60,7 +59,7 @@ where
 
 fn sample_uniform_word<R, T>(rng: &mut T) -> R
 where
-    R: IntegerRing<Uint = u64>,
+    R: IntegerRing<Canonical = u64>,
     T: grid_std::rand::RngExt,
 {
     let modulus = R::modulus();
@@ -80,7 +79,7 @@ where
 
 fn sample_uniform_large<R, T, const N: usize>(rng: &mut T) -> R
 where
-    R: IntegerRing<Uint = BigUint<N>> + LargeCanonicalRing<Canonical = BigUint<N>>,
+    R: IntegerRing<Canonical = BigUint<N>>,
     T: grid_std::rand::RngExt,
 {
     let modulus = R::modulus_canonical();
@@ -128,7 +127,7 @@ impl<R> UniformSampler<R> {
     }
 }
 
-impl<R: IntegerRing<Uint = u64>> CoeffSampler<R> for UniformSampler<R> {
+impl<R: IntegerRing<Canonical = u64>> CoeffSampler<R> for UniformSampler<R> {
     fn sample_coeff<T: grid_std::rand::RngExt>(&self, rng: &mut T) -> R {
         sample_uniform_word::<R, T>(rng)
     }
@@ -149,7 +148,7 @@ impl<R> TernarySampler<R> {
     }
 }
 
-impl<R: IntegerRing<Uint = u64>> CoeffSampler<R> for TernarySampler<R> {
+impl<R: IntegerRing<Canonical = u64>> CoeffSampler<R> for TernarySampler<R> {
     fn sample_coeff<T: grid_std::rand::RngExt>(&self, rng: &mut T) -> R {
         match rng.random_range(0..3usize) {
             0 => R::zero(),
@@ -182,7 +181,7 @@ impl<R> CBDSampler<R> {
     }
 }
 
-impl<R: IntegerRing<Uint = u64>> CoeffSampler<R> for CBDSampler<R> {
+impl<R: IntegerRing<Canonical = u64>> CoeffSampler<R> for CBDSampler<R> {
     fn sample_coeff<T: grid_std::rand::RngExt>(&self, rng: &mut T) -> R {
         let mut left = 0i64;
         let mut right = 0i64;
@@ -228,7 +227,7 @@ impl<R> ApproxGaussianSampler<R> {
     }
 }
 
-impl<R: IntegerRing<Uint = u64>> CoeffSampler<R> for ApproxGaussianSampler<R> {
+impl<R: IntegerRing<Canonical = u64>> CoeffSampler<R> for ApproxGaussianSampler<R> {
     fn sample_coeff<T: grid_std::rand::RngExt>(&self, rng: &mut T) -> R {
         loop {
             let signed = rng.random_range(-(self.tail_cut as i64)..=(self.tail_cut as i64));
@@ -258,7 +257,7 @@ impl<R> LargeUniformSampler<R> {
 
 impl<R, const N: usize> CoeffSampler<R> for LargeUniformSampler<R>
 where
-    R: IntegerRing<Uint = BigUint<N>> + LargeCanonicalRing<Canonical = BigUint<N>>,
+    R: IntegerRing<Canonical = BigUint<N>>,
 {
     fn sample_coeff<T: grid_std::rand::RngExt>(&self, rng: &mut T) -> R {
         sample_uniform_large::<R, T, N>(rng)
@@ -282,7 +281,7 @@ impl<R> LargeTernarySampler<R> {
 
 impl<R, const N: usize> CoeffSampler<R> for LargeTernarySampler<R>
 where
-    R: IntegerRing<Uint = BigUint<N>> + LargeCanonicalRing<Canonical = BigUint<N>>,
+    R: IntegerRing<Canonical = BigUint<N>>,
 {
     fn sample_coeff<T: grid_std::rand::RngExt>(&self, rng: &mut T) -> R {
         match rng.random_range(0..3usize) {
@@ -318,7 +317,7 @@ impl<R> LargeCBDSampler<R> {
 
 impl<R, const N: usize> CoeffSampler<R> for LargeCBDSampler<R>
 where
-    R: IntegerRing<Uint = BigUint<N>> + LargeCanonicalRing<Canonical = BigUint<N>>,
+    R: IntegerRing<Canonical = BigUint<N>>,
 {
     fn sample_coeff<T: grid_std::rand::RngExt>(&self, rng: &mut T) -> R {
         let mut left = 0i64;
@@ -367,7 +366,7 @@ impl<R> LargeApproxGaussianSampler<R> {
 
 impl<R, const N: usize> CoeffSampler<R> for LargeApproxGaussianSampler<R>
 where
-    R: IntegerRing<Uint = BigUint<N>> + LargeCanonicalRing<Canonical = BigUint<N>>,
+    R: IntegerRing<Canonical = BigUint<N>>,
 {
     fn sample_coeff<T: grid_std::rand::RngExt>(&self, rng: &mut T) -> R {
         loop {
@@ -421,7 +420,7 @@ where
 }
 
 #[cfg(test)]
-fn centered_u64<R: IntegerRing<Uint = u64>>(value: &R) -> i64 {
+fn centered_u64<R: IntegerRing<Canonical = u64>>(value: &R) -> i64 {
     let x = value.to_u64();
     let modulus = R::modulus();
     if modulus == 0 || x <= modulus / 2 {
@@ -434,7 +433,7 @@ fn centered_u64<R: IntegerRing<Uint = u64>>(value: &R) -> i64 {
 #[cfg(test)]
 fn centered_big<R, const N: usize>(value: &R) -> i64
 where
-    R: IntegerRing<Uint = BigUint<N>> + LargeCanonicalRing<Canonical = BigUint<N>>,
+    R: IntegerRing<Canonical = BigUint<N>>,
 {
     let canonical = value.to_canonical();
     if let Some(small) = canonical.try_to_u64() {

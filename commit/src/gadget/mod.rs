@@ -9,7 +9,8 @@ use alloc::vec;
 use alloc::vec::Vec;
 use core::array::from_fn;
 
-use grid_algebra::arith::prime::{PrimeField, PrimeFieldLimb};
+use grid_algebra::arith::limb::UintLimb;
+use grid_algebra::arith::prime::PrimeField;
 use grid_algebra::arith::ring::{IntegerRing, Ring};
 use grid_algebra::arith::z2k::Z2K;
 use grid_algebra::lattice::params::VectorNormBound;
@@ -54,7 +55,7 @@ trait GadgetRing: CommitmentSampleRing {
     fn digit_is_canonical(value: &Self, base: u64) -> bool;
 }
 
-impl<const Q: u64, L: PrimeFieldLimb> GadgetRing for PrimeField<Q, L> {
+impl<const Q: u64, L: UintLimb> GadgetRing for PrimeField<Q, L> {
     fn gadget_digit_count(base: u64) -> usize {
         gadget_vector::<Self>(base).len()
     }
@@ -132,7 +133,7 @@ impl<const K: u32> GadgetRing for Z2K<K> {
 
 impl<C, const N: usize> GadgetRing for CyclotomicPolyRing<C, N>
 where
-    C: NegacyclicMulRing<N, Uint = u64> + CommitmentSampleRing + UniformRand + Valid,
+    C: NegacyclicMulRing<N, Canonical = u64> + CommitmentSampleRing + UniformRand + Valid,
 {
     fn gadget_digit_count(base: u64) -> usize {
         gadget_vector::<C>(base).len()

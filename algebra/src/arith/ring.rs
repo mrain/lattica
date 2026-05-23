@@ -128,26 +128,66 @@ pub trait Ring:
             *dst_value += Self::mul_ref(src_value, scalar);
         }
     }
+
+    /// Compute `self^exp` by repeated squaring.
+    fn pow(&self, mut exp: u64) -> Self {
+        let mut base = self.clone();
+        let mut result = Self::one();
+        while exp > 0 {
+            if exp & 1 == 1 {
+                let b = base.clone();
+                result *= b;
+            }
+            base = base.square();
+            exp >>= 1;
+        }
+        result
+    }
 }
 
-/// An integer ring `Z_q` with a modulus and reduction.
+/// An integer ring `Z_q` with a modulus and canonical representatives.
 ///
 /// Extends [`Ring`] with modulus-aware operations.
 pub trait IntegerRing: Ring {
-    /// The unsigned integer type used to represent the modulus.
-    type Uint: Clone + Debug + PartialEq + Eq + PartialOrd + Ord;
+    /// Canonical representative type used by this backend.
+    type Canonical: Clone + Debug + PartialEq + Eq + PartialOrd + Ord;
+
+    /// Return the modulus in canonical form.
+    fn modulus_canonical() -> Self::Canonical;
+
+    /// Embed a small `u64` value.
+    fn from_small_u64(value: u64) -> Self;
+
+    /// Reduce a canonical representative into the ring.
+    fn from_canonical(value: &Self::Canonical) -> Self;
+
+    /// Export the canonical representative.
+    fn to_canonical(&self) -> Self::Canonical;
+
+    /// Return the value as `u64` if it fits exactly.
+    fn try_to_u64(&self) -> Option<u64>;
+
+    /// Return the value as `u128` if it fits exactly.
+    fn try_to_u128(&self) -> Option<u128>;
 
     /// The modulus `q`.
-    fn modulus() -> Self::Uint;
+    fn modulus() -> Self::Canonical {
+        Self::modulus_canonical()
+    }
 
     /// Create an element from a `u64`, reducing modulo `q`.
-    fn from_u64(val: u64) -> Self;
+    fn from_u64(val: u64) -> Self {
+        Self::from_small_u64(val)
+    }
 
     /// Export the element as a `u64`.
     ///
     /// # Panics
-    /// May panic if the internal representation doesn't fit in a `u64`.
-    fn to_u64(&self) -> u64;
+    /// Panics if the canonical representative does not fit in a `u64`.
+    fn to_u64(&self) -> u64 {
+        self.try_to_u64()
+            .expect("IntegerRing canonical representative does not fit in u64")
+    }
 
     /// Centered L2 representative as `f64`.
     ///
@@ -158,7 +198,9 @@ pub trait IntegerRing: Ring {
     fn lossy_l2_value(&self) -> f64;
 
     /// Reduce a value modulo `q` (ensure canonical representation).
-    fn reduce(&self) -> Self;
+    fn reduce(&self) -> Self {
+        Self::from_canonical(&self.to_canonical())
+    }
 }
 
 /// A field `Z_q` where `q` is prime — supports multiplicative inversion.
@@ -177,21 +219,6 @@ pub trait Field: IntegerRing {
     fn div(&self, other: &Self) -> Self {
         let inv = other.inv();
         Self::mul_ref(self, &inv)
-    }
-
-    /// Compute `self^exp` by repeated squaring.
-    fn pow(&self, mut exp: u64) -> Self {
-        let mut base = self.clone();
-        let mut result = Self::one();
-        while exp > 0 {
-            if exp & 1 == 1 {
-                let b = base.clone();
-                result *= b;
-            }
-            base = base.square();
-            exp >>= 1;
-        }
-        result
     }
 }
 

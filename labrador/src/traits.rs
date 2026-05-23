@@ -10,7 +10,7 @@ use grid_std::UniformRand;
 /// Bundles the bounds required by the proof ring so that function signatures
 /// don't repeat the same wall of traits.
 pub trait LabradorProofRing<const N: usize>:
-    IntegerRing<Uint = u64>
+    IntegerRing<Canonical = u64>
     + NegacyclicMulRing<N>
     + UniformRand
     + CanonicalSerialize
@@ -21,7 +21,7 @@ pub trait LabradorProofRing<const N: usize>:
 /// Blanket implementation: any ring that satisfies the bounds
 /// automatically gets `LabradorProofRing`.
 impl<R, const N: usize> LabradorProofRing<N> for R where
-    R: IntegerRing<Uint = u64>
+    R: IntegerRing<Canonical = u64>
         + NegacyclicMulRing<N>
         + UniformRand
         + CanonicalSerialize

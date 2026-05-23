@@ -33,7 +33,7 @@ fn validate_decomposed_limbs<R, const N: usize>(
     q: u64,
 ) -> Result<(), String>
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N>,
+    R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N>,
 {
     let base = decomposed.base;
     let half_base = base / 2;
@@ -65,7 +65,10 @@ fn validate_proof_shapes<R, const N: usize>(
     params: &LabradorParams,
 ) -> Result<(), String>
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N> + CanonicalSerialize + CanonicalDeserialize,
+    R: IntegerRing<Canonical = u64>
+        + NegacyclicMulRing<N>
+        + CanonicalSerialize
+        + CanonicalDeserialize,
 {
     validate_proof_shapes_common(challenges, t_decomposed, g_decomposed, h_decomposed, params)?;
     if z.len() != params.n {
@@ -86,7 +89,10 @@ fn validate_proof_shapes_common<R, const N: usize>(
     params: &LabradorParams,
 ) -> Result<(), String>
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N> + CanonicalSerialize + CanonicalDeserialize,
+    R: IntegerRing<Canonical = u64>
+        + NegacyclicMulRing<N>
+        + CanonicalSerialize
+        + CanonicalDeserialize,
 {
     validate_challenges_len(challenges, params)?;
     validate_decomposed_shapes(t_decomposed, g_decomposed, h_decomposed, params)?;
@@ -113,7 +119,10 @@ fn validate_decomposed_shapes<R, const N: usize>(
     params: &LabradorParams,
 ) -> Result<(), String>
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N> + CanonicalSerialize + CanonicalDeserialize,
+    R: IntegerRing<Canonical = u64>
+        + NegacyclicMulRing<N>
+        + CanonicalSerialize
+        + CanonicalDeserialize,
 {
     let garbage_len = crate::main_protocol::garbage_count(params.r);
 
@@ -207,7 +216,7 @@ fn polys_l2_norm_squared_u128<R, const N: usize>(
     polys: &[CyclotomicPolyRing<R, N>],
 ) -> Result<u128, String>
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N>,
+    R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N>,
 {
     let coeffs: Vec<_> = polys.iter().flat_map(|p| p.coeffs()).cloned().collect();
     crate::main_protocol::squared_l2_norm_u128(coeffs).map_err(String::from)
@@ -227,7 +236,7 @@ fn verify_opening_norms<R, const N: usize>(
     gamma2_sq: u128,
 ) -> Result<(), String>
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N>,
+    R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N>,
 {
     // ||t||^2 + ||g||^2 <= gamma1^2 (t+g bound for u1 = B·t + C·g)
     let t_norm_sq = polys_l2_norm_squared_u128(&t_decomposed.flat)?;
@@ -272,7 +281,7 @@ pub fn verify_all<R, const N: usize>(
     params: &LabradorParams,
 ) -> Result<(), String>
 where
-    R: IntegerRing<Uint = u64>
+    R: IntegerRing<Canonical = u64>
         + NegacyclicMulRing<N>
         + CanonicalSerialize
         + CanonicalDeserialize
@@ -342,7 +351,7 @@ fn verify_eq_u1<R, const N: usize>(
     g_decomposed: &DecomposedPolys<CyclotomicPolyRing<R, N>>,
 ) -> Result<(), String>
 where
-    R: IntegerRing<Uint = u64>
+    R: IntegerRing<Canonical = u64>
         + NegacyclicMulRing<N>
         + CanonicalSerialize
         + CanonicalDeserialize
@@ -363,7 +372,7 @@ fn verify_eq_2a<R, const N: usize>(
     t_vecs: &[RingVec<CyclotomicPolyRing<R, N>>],
 ) -> Result<(), String>
 where
-    R: IntegerRing<Uint = u64>
+    R: IntegerRing<Canonical = u64>
         + NegacyclicMulRing<N>
         + CanonicalSerialize
         + CanonicalDeserialize
@@ -387,7 +396,10 @@ where
 /// Equation (2b): ||z|| ≤ γ
 fn verify_eq_2b<R, const N: usize>(z: &[CyclotomicPolyRing<R, N>], gamma: f64) -> Result<(), String>
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N> + CanonicalSerialize + CanonicalDeserialize,
+    R: IntegerRing<Canonical = u64>
+        + NegacyclicMulRing<N>
+        + CanonicalSerialize
+        + CanonicalDeserialize,
 {
     let coeffs: Vec<_> = z.iter().flat_map(|p| p.coeffs()).cloned().collect();
     let norm_sq = crate::main_protocol::squared_l2_norm::<R>(coeffs).map_err(String::from)?;
@@ -408,7 +420,7 @@ fn verify_eq_3a<R, const N: usize>(
     challenges: &[CyclotomicPolyRing<R, N>],
 ) -> Result<(), String>
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N>,
+    R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N>,
 {
     let r = challenges.len();
 
@@ -445,7 +457,7 @@ fn verify_eq_3b<R, const N: usize>(
     aggregated_phis: &[Vec<CyclotomicPolyRing<R, N>>],
 ) -> Result<(), String>
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N>,
+    R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N>,
 {
     let r = challenges.len();
 
@@ -486,7 +498,10 @@ fn verify_eq_3c<R, const N: usize>(
     b: &CyclotomicPolyRing<R, N>,
 ) -> Result<(), String>
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N> + CanonicalSerialize + CanonicalDeserialize,
+    R: IntegerRing<Canonical = u64>
+        + NegacyclicMulRing<N>
+        + CanonicalSerialize
+        + CanonicalDeserialize,
 {
     let r = challenges_count_from_g(g_polys.len());
     let mut sum = CyclotomicPolyRing::<R, N>::zero();
@@ -519,7 +534,7 @@ fn verify_eq_u2<R, const N: usize>(
     h_decomposed: &DecomposedPolys<CyclotomicPolyRing<R, N>>,
 ) -> Result<(), String>
 where
-    R: IntegerRing<Uint = u64>
+    R: IntegerRing<Canonical = u64>
         + NegacyclicMulRing<N>
         + CanonicalSerialize
         + CanonicalDeserialize

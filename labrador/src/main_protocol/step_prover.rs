@@ -40,7 +40,7 @@ use crate::relation::{LabradorStatement, LabradorWitness};
 #[derive(Debug, Clone, CanonicalSerialize, CanonicalDeserialize)]
 pub struct LevelProof<R, const N: usize>
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N> + UniformRand,
+    R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N> + UniformRand,
 {
     pub u1: RingVec<CyclotomicPolyRing<R, N>>,
     pub jl_seed: [u8; 32],
@@ -59,7 +59,7 @@ where
 #[derive(Debug, Clone)]
 pub struct LevelPrivateWitness<R, const N: usize>
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N> + UniformRand,
+    R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N> + UniformRand,
 {
     pub z: Vec<CyclotomicPolyRing<R, N>>,
     pub t_decomposed: DecomposedPolys<CyclotomicPolyRing<R, N>>,
@@ -77,7 +77,7 @@ where
 #[derive(Debug, Clone)]
 pub struct StepProverOutput<R, const N: usize>
 where
-    R: IntegerRing<Uint = u64> + NegacyclicMulRing<N> + UniformRand,
+    R: IntegerRing<Canonical = u64> + NegacyclicMulRing<N> + UniformRand,
 {
     /// Public proof data sent to the verifier.
     pub level_proof: LevelProof<R, N>,
@@ -106,7 +106,7 @@ pub fn prove_step<R, const N: usize, T>(
     level: usize,
 ) -> Result<StepProverOutput<R, N>, LabradorError>
 where
-    R: IntegerRing<Uint = u64>
+    R: IntegerRing<Canonical = u64>
         + NegacyclicMulRing<N>
         + UniformRand
         + CanonicalSerialize

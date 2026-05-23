@@ -439,7 +439,7 @@ impl<Rq: PolyRing> LabradorWitness<Rq> {
     /// slice) and sums the results — zero heap allocation.
     pub fn l2_norm_squared(&self) -> f64
     where
-        Rq: PolyRing<Coeff: IntegerRing<Uint = u64>>,
+        Rq: PolyRing<Coeff: IntegerRing<Canonical = u64>>,
     {
         let mut sum: f64 = 0.0;
         for part in &self.parts {
@@ -457,7 +457,7 @@ impl<Rq: PolyRing> LabradorWitness<Rq> {
     /// precision for security-critical threshold comparisons.
     pub fn l2_norm_squared_u128(&self) -> Result<u128, String>
     where
-        Rq: PolyRing<Coeff: IntegerRing<Uint = u64>>,
+        Rq: PolyRing<Coeff: IntegerRing<Canonical = u64>>,
     {
         let mut sum: u128 = 0;
         for part in &self.parts {
@@ -485,7 +485,7 @@ pub fn verify<Rq>(
     beta: f64,
 ) -> Result<(), String>
 where
-    Rq: PolyRing<Coeff: IntegerRing<Uint = u64>>,
+    Rq: PolyRing<Coeff: IntegerRing<Canonical = u64>>,
 {
     if !beta.is_finite() || beta <= 0.0 {
         return Err(format!("beta must be positive and finite, got {}", beta));
